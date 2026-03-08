@@ -1,0 +1,22 @@
+# Core Dependencies
+python-evtx>=0.7.7              # Windows Event Log parsing
+pydantic>=2.0                   # Data validation and serialization
+
+# Embeddings & Vector Database
+sentence-transformers>=2.2.0    # Text embeddings (all-MiniLM-L6-v2)
+faiss-cpu>=1.7.4                # Vector similarity search (use faiss-gpu if NVIDIA GPU available)
+numpy>=1.24                     # Numerical operations
+
+# RAG Framework & LLM
+llama-index>=0.10.0             # Retrieval-Augmented Generation framework
+ollama>=0.1.0                   # Local LLM client (Qwen2.5-3B)
+
+# Configuration & Utilities
+pyyaml>=6.0                     # YAML configuration parsing
+tqdm>=4.65                      # Progress bars
+python-dotenv>=1.0              # Environment variable management
+
+# Development & Testing (optional)
+pytest>=7.4                     # Unit testing
+black>=23.0                     # Code formatting
+flake8>=6.0                     # Linting
