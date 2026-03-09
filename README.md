@@ -55,28 +55,42 @@ Evidence Files (.evtx / .pcap)
 
 ```
 TraceGuard AI/
-├── src/
+├── backend/                  # FastAPI REST API
+│   ├── app.py                # Main application (12 endpoints)
+│   ├── models.py             # Pydantic data models
+│   ├── requirements.txt       # Python dependencies
+│   └── routes/               # API endpoint modules
+│       ├── files.py          # File upload/management
+│       ├── query.py          # Investigation queries
+│       ├── stats.py          # Statistics & timeline
+│       ├── processing.py     # Pipeline status
+│       └── settings.py       # Configuration
+├── frontend/                 # Next.js React web interface
+│   ├── app/                  # Pages (Dashboard, Upload, Investigation, Settings)
+│   ├── components/           # UI components (60+)
+│   ├── hooks/                # React hooks (useQuery, useFiles, useStats)
+│   ├── lib/                  # API client
+│   ├── package.json          # Node dependencies
+│   └── .env.local            # Frontend environment config
+├── src/                      # Core investigation modules
 │   ├── parsers/              # EVTX & PCAP parsing
-│   ├── processors/           # Evidence processing & document building
+│   ├── processors/           # Evidence processing
 │   ├── embeddings/           # Embedding generation
 │   ├── storage/              # FAISS vector database
-│   ├── rag/                  # RAG pipeline orchestration
+│   ├── rag/                  # RAG pipeline
 │   ├── investigation/        # Analysis & MITRE mapping
-│   ├── utils/                # Logging & utilities
-│   └── config.py             # Configuration management
-├── scripts/                  # Executable pipeline stages
-│   ├── 01_parse_evidence.py
-│   ├── 02_build_embeddings.py
-│   ├── 03_init_vector_db.py
-│   ├── 04_run_investigation.py
-│   └── utils/validate_setup.py
-├── config/settings.yaml      # Application configuration
+│   └── utils/                # Logging & utilities
 ├── data/                     # Forensic evidence
-│   ├── credential_access/
-│   ├── execution/
-│   ├── lateral_movement/
-│   └── network_logs/
-├── requirements.txt          # Python dependencies
+│   ├── credential_access/    # LSASS, KeeFarce, Mimikatz dumps
+│   ├── execution/            # Process execution events
+│   ├── lateral_movement/     # Lateral movement events
+│   └── network_logs/         # PCAP network traffic
+├── data_parsed/              # Processed evidence catalog
+├── vectordb/                 # FAISS vector database
+├── embeddings/               # Generated embeddings
+├── docker-compose.yml        # Docker container orchestration
+├── Dockerfile.backend        # FastAPI container
+├── Dockerfile.frontend       # Next.js container
 └── README.md                 # This file
 ```
 
@@ -183,6 +197,117 @@ Then ask questions:
 ? Exit
 ```
 
+## 🌐 Web Application Interface
+
+### Quick Start (Recommended)
+
+The web application provides a modern browser-based interface for the same investigation capabilities.
+
+#### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- Ollama running locally (`ollama serve` on port 11434)
+
+#### Option 1: Local Development (2 min)
+
+**Terminal 1: Start Backend API**
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
+```
+✅ Backend runs on `http://localhost:8001`
+
+**Terminal 2: Start Frontend**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+✅ Frontend runs on `http://localhost:3000`
+
+**Open your browser**: Navigate to `http://localhost:3000`
+
+#### Option 2: Docker Deployment (Production)
+
+```bash
+docker-compose up --build
+```
+
+This starts:
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:8001
+- **Ollama**: http://localhost:11434 (if configured)
+
+### Web Application Features
+
+#### Dashboard
+- Event statistics and breakdown by category
+- Severity distribution
+- Chronological timeline of detected events
+
+#### File Upload
+- Drag & drop or select .evtx/.pcap files
+- Automatic category detection
+- Real-time upload progress
+
+#### Investigation Interface
+- Natural language query submission
+- AI-powered analysis with evidence retrieval
+- MITRE ATT&CK technique mapping
+- Confidence scoring
+- Response time tracking
+
+#### Settings
+- View current configuration
+- LLM model information
+- Embedding model details
+- Data directory paths
+
+### API Endpoints
+
+The backend provides a RESTful API (used by the web frontend):
+
+**File Management**
+- `POST /api/files/upload` - Upload forensic files
+- `GET /api/files/` - List uploaded files
+- `DELETE /api/files/{file_id}` - Delete file
+- `POST /api/files/reprocess/{file_id}` - Reprocess file
+
+**Investigation Queries**
+- `POST /api/query/` - Submit investigation query
+- `GET /api/query/suggestions` - Get example queries
+- `GET /api/query/history` - Get query history
+
+**Analytics**
+- `GET /api/stats/` - Get event statistics
+- `GET /api/stats/timeline` - Get chronological timeline
+
+**System**
+- `GET /api/settings/` - Get current configuration
+- `PUT /api/settings/` - Update settings
+- `GET /api/processing/status` - Get pipeline status
+- `GET /api/processing/logs` - Get processing logs
+- `GET /` - API health check
+
+### Environment Configuration
+
+**Backend** (`backend/.env`):
+```env
+BACKEND_HOST=127.0.0.1
+BACKEND_PORT=8001
+OLLAMA_URL=http://localhost:11434
+LLM_MODEL=qwen2.5:3b
+DATA_DIR=./data
+VECTORDB_DIR=./vectordb
+EMBEDDING_MODEL_PATH=./embeddings/all-MiniLM-L6-v2
+```
+
+**Frontend** (`frontend/.env.local`):
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8001
+```
+
 ## 📚 Example Queries
 
 The system can answer questions like:
@@ -258,7 +383,54 @@ investigation:
 
 ## 🐛 Troubleshooting
 
-### Validation fails
+### Web Application
+
+**Frontend fails to start**
+```
+Error: Cannot find module '@/...'
+```
+**Solution**: 
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+**Backend API not responding**
+```
+fetch failed: Cannot connect to localhost:8001
+```
+**Solution**:
+```bash
+# Check backend is running
+curl http://localhost:8001/
+
+# Or start it
+cd backend
+python app.py
+```
+
+**File upload fails**
+```
+Error: File could not be saved
+```
+**Solution**:
+- Verify `data/` directories exist
+- Check file size (supports any size via chunked upload)
+- Ensure read/write permissions
+
+**API calls timeout**
+```
+504 Gateway Timeout
+```
+**Solution**:
+- Backend is processing a long query (LLM inference takes 10-30s)
+- Check browser console for details
+- Verify Ollama is running: `ollama serve`
+
+### Command Line
+
+**Validation fails**
 ```bash
 python scripts/utils/validate_setup.py
 # Check the detailed error messages and follow the instructions
@@ -279,12 +451,13 @@ ollama pull qwen2.5:3b
 
 ### Out of memory errors
 - Reduce `retrieval.top_k` in settings.yaml (use top-3 instead of top-5)
-- Use `faiss-gpu` if you have NVIDIA GPU available
-- Process data in smaller batches
+- Use smaller embedding model or batch processing
+- Restart Ollama and frontend
 
-### Slow embedding generation
-- Enable GPU: `pip install torch-cuda` and set `system.enable_gpu: true`
-- Reduce `embedding.batch_size` if RAM is limited
+### Slow response times
+- Normal for CPU-based LLM (Qwen2.5-3B takes 2-5 seconds on typical CPU)
+- For faster inference, use GPU: `ollama pull qwen2.5:3b-gpu`
+- Or switch to faster model: `ollama pull phi:2.7b`
 
 ## 📖 MITRE ATT&CK Mapping
 
@@ -339,17 +512,24 @@ packets = pcap_parser.parse_pcap("data/network_logs/UCAP172.31.69.15.pcap")
 - **Offline LLM**: Uses Qwen2.5-3B locally (no API calls)
 - **No telemetry**: No tracking or analytics
 
-## 💡 Development Roadmap
+## 💡 Development & Features
 
-- [x] Evidence parsing (EVTX, PCAP)
-- [x] Embedding generation and FAISS indexing
-- [x] RAG pipeline with local LLM
-- [x] Interactive investigation CLI
-- [ ] Advanced correlation analysis
-- [ ] Timeline visualization
-- [ ] Incident report generation
-- [ ] Custom embedding models
-- [ ] Multi-language support
+### Current Status
+- ✅ Evidence parsing (EVTX, PCAP) - Complete
+- ✅ Embedding generation and FAISS indexing - Complete
+- ✅ RAG pipeline with local LLM - Complete
+- ✅ Interactive CLI investigation - Complete
+- ✅ Web application with React frontend - Complete
+- ✅ RESTful API backend - Complete
+- ✅ Docker containerization - Complete
+
+### Future Enhancements
+- Advanced correlation analysis
+- Timeline visualization
+- Incident report generation
+- Custom embedding models
+- Multi-language support
+- Performance optimizations
 
 ## 🤝 Contributing
 
@@ -381,5 +561,12 @@ For issues or questions:
 
 ---
 
-**Status**: ✅ Phase 1 (Scaffolding) - Complete
-**Next Phase**: Phase 2 (Evidence Parsing)
+**Status**: ✅ Complete - Both CLI and Web Application Ready
+- Phase 1: Evidence Parsing ✅
+- Phase 2: Embedding Generation ✅
+- Phase 3: RAG Pipeline ✅
+- Phase 4: Investigation Interface (CLI) ✅
+- Phase 5: Web Application (React Frontend) ✅
+- Phase 6: REST API Backend ✅
+
+**Latest**: Docker containerization ready for production deployment
