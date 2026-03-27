@@ -31,11 +31,11 @@ async def upload_file(
     """
     try:
         # Validate file type
-        allowed_extensions = ['.evtx', '.pcap']
+        allowed_extensions = ['.evtx']  # PCAP parser coming soon
         file_ext = os.path.splitext(file.filename)[1].lower()
         
         if file_ext not in allowed_extensions:
-            raise HTTPException(status_code=400, detail=f"File type {file_ext} not supported")
+            raise HTTPException(status_code=400, detail=f"File type {file_ext} not supported. Currently only .evtx files are supported.")
         
         # Determine category
         category = "unknown"
