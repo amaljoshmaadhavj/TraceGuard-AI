@@ -25,7 +25,7 @@ class RAGPipeline:
     def __init__(self, 
                  vectordb_dir: str = "./vectordb",
                  ollama_url: str = "http://localhost:11434",
-                 model: str = "qwen2.5:3b",
+                 model: str = "phi:2.7b",
                  top_k: int = 5):
         """
         Initialize RAG pipeline.

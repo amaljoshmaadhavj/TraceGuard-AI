@@ -50,7 +50,7 @@ class InvestigationAnalyzer:
         self.pipeline = RAGPipeline(
             vectordb_dir=vectordb_dir,
             ollama_url=ollama_url,
-            top_k=5
+            top_k=3
         )
     
     def analyze(self, query: str) -> InvestigationResult:

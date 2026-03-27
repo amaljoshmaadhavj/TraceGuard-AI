@@ -1,7 +1,7 @@
 """
 Local LLM client for Ollama integration.
 
-Provides interface to local Ollama service running Qwen2.5-3B model
+Provides interface to local Ollama service running Phi 2.7B model
 for generating investigation insights.
 """
 
@@ -17,12 +17,12 @@ class OllamaClient:
     """
     Interface to Ollama local LLM service.
     
-    Connects to Ollama instance and generates text using qwen2.5:3b model.
+    Connects to Ollama instance and generates text using phi:2.7b model.
     """
     
     def __init__(self, 
                  base_url: str = "http://localhost:11434",
-                 model: str = "qwen2.5:3b",
+                 model: str = "phi:2.7b",
                  timeout: int = 120):
         """
         Initialize Ollama client.
