@@ -34,8 +34,12 @@ async def upload_file(
         allowed_extensions = ['.evtx']  # PCAP parser coming soon
         file_ext = os.path.splitext(file.filename)[1].lower()
         
+        # Allow files with no extension (network capture files like UCAP172.31.69.15)
+        if file_ext == '' and ('ucap' in file.filename.lower() or 'pcap' in file.filename.lower()):
+            raise HTTPException(status_code=400, detail=f"PCAP files not yet supported. Please upload .evtx files instead. Network log parser coming soon.")
+        
         if file_ext not in allowed_extensions:
-            raise HTTPException(status_code=400, detail=f"File type {file_ext} not supported. Currently only .evtx files are supported.")
+            raise HTTPException(status_code=400, detail=f"File type '{file_ext}' not supported. Only .evtx files are currently supported.")
         
         # Determine category
         category = "unknown"
