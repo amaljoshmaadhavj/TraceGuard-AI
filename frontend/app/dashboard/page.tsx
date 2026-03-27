@@ -34,58 +34,79 @@ export default function DashboardPage() {
         />
 
         {/* Key Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="Total Cases"
+            title="Total Node Hits"
             value="127"
             icon={<ShieldAlert className="w-5 h-5" />}
-            change={{ value: 12, label: 'this month', trend: 'up' }}
+            change={{ value: 12, label: 'buffer_growth', trend: 'up' }}
+            className="card-premium border-primary/20"
           />
           <StatCard
-            title="Confirmed Detections"
+            title="Extraction Success"
             value="34"
-            icon={<CheckCircle2 className="w-5 h-5" />}
-            change={{ value: 8, label: 'this week', trend: 'up' }}
+            icon={<CheckCircle2 className="w-5 h-5 text-glow" />}
+            change={{ value: 8, label: 'this_cycle', trend: 'up' }}
+            className="card-premium border-primary/40"
           />
           <StatCard
-            title="Pending Analysis"
+            title="Pending Queues"
             value="12"
             icon={<Clock className="w-5 h-5" />}
-            change={{ value: 3, label: 'in progress', trend: 'up' }}
+            change={{ value: 3, label: 'in_transit', trend: 'up' }}
+            className="card-premium border-primary/20"
           />
           <StatCard
-            title="Avg. Confidence"
+            title="LLM Confidence"
             value="94.2%"
             icon={<TrendingUp className="w-5 h-5" />}
-            change={{ value: 2.3, label: 'accuracy', trend: 'up' }}
+            change={{ value: 2.3, label: 'sync_rate', trend: 'up' }}
+            className="card-premium border-primary/20"
           />
         </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Cases Over Time */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Cases Analyzed (7 Days)</CardTitle>
-              <CardDescription>Daily investigation activity</CardDescription>
+          <Card className="lg:col-span-2 card-premium border-primary/20">
+            <CardHeader className="bg-primary/5 border-b border-primary/10">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                 <BarChart3 className="w-4 h-4" />
+                 Temporal Analysis (7D)
+              </CardTitle>
+              <CardDescription className="text-[10px] font-mono uppercase">Daily extraction activity logs</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={mockCasesData}>
                   <defs>
                     <linearGradient id="colorCases" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="oklch(0.78 0.22 150)" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="oklch(0.78 0.22 150)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                  <XAxis dataKey="date" stroke="var(--color-muted-foreground)" />
-                  <YAxis stroke="var(--color-muted-foreground)" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
-                    labelStyle={{ color: 'var(--color-foreground)' }}
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.32 0.05 155)" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="oklch(0.65 0.08 160)" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false}
+                    className="font-mono uppercase"
                   />
-                  <Area type="monotone" dataKey="cases" stroke="var(--color-primary)" fillOpacity={1} fill="url(#colorCases)" />
+                  <YAxis 
+                    stroke="oklch(0.65 0.08 160)" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false}
+                    className="font-mono"
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'oklch(0.12 0.015 160)', border: '1px solid oklch(0.78 0.22 150)', borderRadius: '8px' }}
+                    itemStyle={{ color: 'oklch(0.78 0.22 150)', fontFamily: 'monospace', fontSize: '12px' }}
+                    labelStyle={{ color: 'oklch(0.98 0.01 160)', marginBottom: '4px', fontWeight: 'bold' }}
+                  />
+                  <Area type="monotone" dataKey="cases" stroke="oklch(0.78 0.22 150)" strokeWidth={3} fillOpacity={1} fill="url(#colorCases)" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>

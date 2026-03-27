@@ -34,27 +34,27 @@ export default function Home() {
         {/* Hero Section */}
         <section className="mb-16">
           <div className="text-center space-y-6 mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-              <div className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-sm font-medium text-primary">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/40 text-glow">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-sm font-bold tracking-widest uppercase text-primary">
                 Advanced Forensics Platform
               </span>
             </div>
-            <h1 className="text-5xl lg:text-6xl font-bold tracking-tight text-balance">
+            <h1 className="text-5xl lg:text-7xl font-bold tracking-tighter text-balance uppercase">
               Digital Forensics Meets
-              <span className="text-primary"> AI Intelligence</span>
+              <span className="text-primary text-glow block lg:inline"> AI Intelligence</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
-              TraceGuard AI delivers cutting-edge forensic investigation tools powered by artificial intelligence. Detect AI-generated content, analyze digital evidence, and build unshakeable cases.
+            <p className="text-xl text-muted-foreground/80 max-w-2xl mx-auto text-balance font-mono leading-relaxed">
+              [SYSTEM_MESSAGE]: TraceGuard AI delivers cutting-edge forensic investigation tools powered by artificial intelligence. Detect AI-generated content, analyze digital evidence, and build unshakeable cases.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
               <Link href="/upload">
-                <Button size="lg" className="bg-primary hover:bg-primary/90">
+                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/80 px-8 py-6 text-lg font-bold uppercase tracking-tighter shadow-[0_0_20px_rgba(0,255,65,0.4)]">
                   Start Investigation
                 </Button>
               </Link>
               <Link href="/dashboard">
-                <Button size="lg" variant="outline">
+                <Button size="lg" variant="outline" className="border-primary/50 text-primary hover:bg-primary/10 px-8 py-6 text-lg font-bold uppercase tracking-tighter">
                   View Dashboard
                 </Button>
               </Link>
@@ -62,49 +62,50 @@ export default function Home() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16">
-            <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
-              <CardContent className="p-6">
-                <div className="text-3xl font-bold">15,234</div>
-                <p className="text-sm text-muted-foreground mt-2">Cases Analyzed</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20">
+            <Card className="card-premium border-primary/30">
+              <CardContent className="p-8">
+                <div className="text-4xl font-bold text-primary text-glow uppercase">15,234</div>
+                <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">Cases Analyzed</p>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-accent/5 to-transparent border-accent/20">
-              <CardContent className="p-6">
-                <div className="text-3xl font-bold">99.8%</div>
-                <p className="text-sm text-muted-foreground mt-2">Detection Accuracy</p>
+            <Card className="card-premium border-accent/30">
+              <CardContent className="p-8">
+                <div className="text-4xl font-bold text-accent text-glow uppercase">99.8%</div>
+                <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">Detection Accuracy</p>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-green-500/5 to-transparent border-green-500/20">
-              <CardContent className="p-6">
-                <div className="text-3xl font-bold">&lt;2s</div>
-                <p className="text-sm text-muted-foreground mt-2">Average Analysis Time</p>
+            <Card className="card-premium border-primary/30">
+              <CardContent className="p-8">
+                <div className="text-4xl font-bold text-primary text-glow uppercase">&lt;2s</div>
+                <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">Avg Analysis Time</p>
               </CardContent>
             </Card>
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Why TraceGuard AI?</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Industry-leading forensic tools designed for investigators, law enforcement, and security professionals.
+        <section className="mb-24 py-12">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4 uppercase tracking-tighter">System Capabilities</h2>
+            <div className="h-1 w-24 bg-primary mx-auto mb-6" />
+            <p className="text-muted-foreground/70 max-w-xl mx-auto font-mono">
+              [DEVICES_ONLINE]: Industry-leading forensic tools designed for deep-layer investigation and law enforcement.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon
               return (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
+                <Card key={index} className="card-premium group">
+                  <CardHeader className="pb-2">
                     <div className="mb-4">
-                      <Icon className="w-8 h-8 text-primary" />
+                      <Icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform duration-300" />
                     </div>
-                    <CardTitle className="text-lg">{feature.title}</CardTitle>
+                    <CardTitle className="text-xl font-bold uppercase tracking-tight">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground leading-relaxed font-mono">
                       {feature.description}
                     </p>
                   </CardContent>
@@ -115,16 +116,17 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16">
-          <Card className="bg-gradient-to-r from-primary/20 via-transparent to-accent/20 border-primary/30">
-            <CardContent className="p-12 text-center space-y-6">
-              <h2 className="text-3xl font-bold">Ready to investigate?</h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">
-                Upload your first piece of evidence and let TraceGuard AI analyze it instantly.
+        <section className="py-20">
+          <Card className="card-premium border-primary/50 relative overflow-hidden">
+            <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+            <CardContent className="p-16 text-center space-y-8 relative z-10">
+              <h2 className="text-4xl font-bold uppercase tracking-tighter">Initialize Investigation?</h2>
+              <p className="text-muted-foreground/80 max-w-2xl mx-auto font-mono text-lg">
+                SECURE_PROTOCOL: Upload your first piece of evidence and let the system analyze it. TraceGuard AI is ready for active surveillance.
               </p>
               <Link href="/upload">
-                <Button size="lg" className="bg-primary hover:bg-primary/90">
-                  Upload Evidence
+                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/80 px-10 py-8 text-xl font-black uppercase tracking-widest shadow-[0_0_30px_rgba(0,255,65,0.6)]">
+                  [ START_UPLOAD ]
                 </Button>
               </Link>
             </CardContent>

@@ -58,7 +58,7 @@ def initialize_vectordb():
                                 'timestamp': event.get('timestamp', event.get('TimeCreated', '')),
                                 'metadata': event
                             })
-                        else:
+                        else:   
                             # EventLogEntry object
                             all_documents.append({
                                 'id': f"{file_count}_{event_count}",
