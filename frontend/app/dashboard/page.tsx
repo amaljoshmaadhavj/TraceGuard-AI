@@ -1,35 +1,81 @@
+'use client'
+
 import { AppLayout } from '@/components/layout/app-layout'
 import { PageHeader } from '@/components/common/page-header'
 import { StatCard } from '@/components/common/stat-card'
 import { EvidenceCard } from '@/components/common/evidence-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShieldAlert, TrendingUp, AlertTriangle, CheckCircle2, Clock, BarChart3 } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
+import { useEffect, useState } from 'react'
 
-const mockCasesData = [
-  { date: 'Mon', cases: 4 },
-  { date: 'Tue', cases: 6 },
-  { date: 'Wed', cases: 5 },
-  { date: 'Thu', cases: 8 },
-  { date: 'Fri', cases: 7 },
-  { date: 'Sat', cases: 3 },
-  { date: 'Sun', cases: 5 },
-]
+interface DashboardStats {
+  total_events: number
+  total_files: number
+  total_techniques: number
+  events_by_category: Record<string, number>
+  severity_distribution: Record<string, number>
+}
 
-const mockRecentEvidences = [
-  { id: 'EV001', title: 'Image-2024-01-15.jpg', type: 'image' as const, status: 'confirmed' as const, confidence: 92, uploadDate: '2024-01-15' },
-  { id: 'EV002', title: 'Document_scan.pdf', type: 'file' as const, status: 'analyzing' as const, uploadDate: '2024-01-14' },
-  { id: 'EV003', title: 'Screenshot_evidence.png', type: 'image' as const, status: 'suspected' as const, confidence: 78, uploadDate: '2024-01-14' },
-  { id: 'EV004', title: 'Audio_recording.wav', type: 'file' as const, status: 'pending' as const, uploadDate: '2024-01-13' },
-]
+interface EvidenceItem {
+  id: string
+  title: string
+  type: 'image' | 'file'
+  status: 'pending' | 'analyzing' | 'suspected' | 'confirmed'
+  confidence?: number
+  uploadDate: string
+}
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [evidence, setEvidence] = useState<EvidenceItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [statsRes, filesRes] = await Promise.all([
+          fetch('http://localhost:8001/api/stats/'),
+          fetch('http://localhost:8001/api/files/')
+        ])
+        
+        const statsData = await statsRes.json()
+        const filesData = await filesRes.json()
+        
+        setStats(statsData)
+        
+        // Map backend files to frontend EvidenceItem format
+        if (filesData && filesData.files) {
+          const mappedFiles: EvidenceItem[] = filesData.files.slice(0, 4).map((f: any) => ({
+            id: f.id,
+            title: f.filename,
+            type: f.filename.endsWith('.evtx') ? 'file' : 'image',
+            status: f.status === 'completed' ? 'confirmed' : 'analyzing',
+            confidence: f.status === 'completed' ? 94 : undefined,
+            uploadDate: new Date(f.upload_time).toLocaleDateString()
+          }))
+          setEvidence(mappedFiles)
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const chartData = stats ? Object.entries(stats.events_by_category).map(([name, value]) => ({
+    date: name.split('_').pop() || name,
+    cases: value
+  })) : []
+
   return (
     <AppLayout>
       <div className="px-4 lg:px-8 py-8 space-y-8">
         <PageHeader
           title="Dashboard"
-          description="Overview of your investigations and analysis results"
+          description="Real-time overview of forensic investigations and neural analysis"
           icon={<ShieldAlert className="w-8 h-8" />}
         />
 
@@ -37,23 +83,23 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Node Hits"
-            value="127"
+            value={stats?.total_events.toString() || "0"}
             icon={<ShieldAlert className="w-5 h-5" />}
             change={{ value: 12, label: 'buffer_growth', trend: 'up' }}
             className="card-premium border-primary/20"
           />
           <StatCard
-            title="Extraction Success"
-            value="34"
+            title="Evidence Files"
+            value={stats?.total_files.toString() || "0"}
             icon={<CheckCircle2 className="w-5 h-5 text-glow" />}
-            change={{ value: 8, label: 'this_cycle', trend: 'up' }}
+            change={{ value: stats?.total_files || 0, label: 'total_archived', trend: 'up' }}
             className="card-premium border-primary/40"
           />
           <StatCard
-            title="Pending Queues"
-            value="12"
+            title="MITRE Techniques"
+            value={stats?.total_techniques.toString() || "0"}
             icon={<Clock className="w-5 h-5" />}
-            change={{ value: 3, label: 'in_transit', trend: 'up' }}
+            change={{ value: 2, label: 'new_detected', trend: 'up' }}
             className="card-premium border-primary/20"
           />
           <StatCard
@@ -72,13 +118,13 @@ export default function DashboardPage() {
             <CardHeader className="bg-primary/5 border-b border-primary/10">
               <CardTitle className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
                  <BarChart3 className="w-4 h-4" />
-                 Temporal Analysis (7D)
+                 Temporal Analysis (Category Distribution)
               </CardTitle>
-              <CardDescription className="text-[10px] font-mono uppercase">Daily extraction activity logs</CardDescription>
+              <CardDescription className="text-[10px] font-mono uppercase">Event distribution across categories</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={mockCasesData}>
+                <AreaChart data={chartData.length > 0 ? chartData : [{date: 'N/A', cases: 0}]}>
                   <defs>
                     <linearGradient id="colorCases" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="oklch(0.78 0.22 150)" stopOpacity={0.4}/>
@@ -113,96 +159,98 @@ export default function DashboardPage() {
           </Card>
 
           {/* Detection Rate */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Detection Rate</CardTitle>
-              <CardDescription>By analysis type</CardDescription>
+          <Card className="card-premium border-primary/20">
+            <CardHeader className="bg-primary/5 border-b border-primary/10">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">Severity Distribution</CardTitle>
+              <CardDescription className="text-[10px] font-mono uppercase">Detected threat levels</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Images</span>
-                    <span className="text-sm font-bold">96%</span>
+                {stats ? Object.entries(stats.severity_distribution).map(([level, count]) => {
+                  const percentage = (count / stats.total_events) * 100;
+                  const colorClass = level === 'critical' ? 'bg-red-500' : level === 'high' ? 'bg-orange-500' : 'bg-primary';
+                  return (
+                    <div key={level} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono uppercase text-primary/80">{level}</span>
+                        <span className="text-xs font-bold text-primary">{count}</span>
+                      </div>
+                      <div className="w-full bg-primary/10 rounded-full h-1.5">
+                        <div className={`${colorClass} h-1.5 rounded-full`} style={{width: `${percentage}%`}}></div>
+                      </div>
+                    </div>
+                  )
+                }) : (
+                  <div className="text-center py-8 text-primary/40 font-mono text-[10px] animate-pulse">
+                    LOADING_SEVERITY_METRICS...
                   </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className="bg-primary h-2 rounded-full" style={{width: '96%'}}></div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Videos</span>
-                    <span className="text-sm font-bold">91%</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className="bg-accent h-2 rounded-full" style={{width: '91%'}}></div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Text</span>
-                    <span className="text-sm font-bold">89%</span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className="bg-green-500 h-2 rounded-full" style={{width: '89%'}}></div>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Recent Evidence */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Evidence Items</CardTitle>
-            <CardDescription>Latest uploaded items for analysis</CardDescription>
+        <Card className="card-premium border-primary/20">
+          <CardHeader className="bg-primary/5 border-b border-primary/10">
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">Live Evidence Ingestion</CardTitle>
+            <CardDescription className="text-[10px] font-mono uppercase">Recent forensic artifacts analyzed by traceguard ai</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {mockRecentEvidences.map((evidence) => (
-                <EvidenceCard key={evidence.id} {...evidence} />
-              ))}
+              {loading ? (
+                Array(4).fill(0).map((_, i) => (
+                  <div key={i} className="h-32 rounded-lg bg-primary/5 animate-pulse border border-primary/10" />
+                ))
+              ) : evidence.length > 0 ? (
+                evidence.map((item) => (
+                  <EvidenceCard key={item.id} {...item} />
+                ))
+              ) : (
+                <div className="col-span-full py-12 text-center text-primary/40 font-mono text-sm">
+                   NO_ACTIVE_INGESTIONS_FOUND
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Risk Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-orange-500/30 bg-orange-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-orange-500" />
-                Suspicious Items
+          <Card className="border-orange-500/30 bg-orange-500/5 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-orange-500 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                Detections Found
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">18</div>
-              <p className="text-sm text-muted-foreground mt-2">Require further investigation</p>
+              <div className="text-3xl font-black text-orange-500/80">{stats?.total_events || 0}</div>
+              <p className="text-[10px] font-mono text-orange-500/60 mt-1 uppercase">Items requiring verification</p>
             </CardContent>
           </Card>
-          <Card className="border-red-500/30 bg-red-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-500" />
-                High Priority
+          <Card className="border-red-500/30 bg-red-500/5 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-red-500 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                Critical Hazards
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">5</div>
-              <p className="text-sm text-muted-foreground mt-2">Immediate action needed</p>
+              <div className="text-3xl font-black text-red-500/80">{stats?.severity_distribution.critical || 0}</div>
+              <p className="text-[10px] font-mono text-red-500/60 mt-1 uppercase">Immediate mitigation required</p>
             </CardContent>
           </Card>
-          <Card className="border-green-500/30 bg-green-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                Verified Safe
+          <Card className="border-emerald-500/30 bg-emerald-500/5 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-emerald-500 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                Integrity Checks
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">104</div>
-              <p className="text-sm text-muted-foreground mt-2">Passed all checks</p>
+              <div className="text-3xl font-black text-emerald-500/80">{stats?.total_files || 0}</div>
+              <p className="text-[10px] font-mono text-emerald-500/60 mt-1 uppercase">Processed evidence streams</p>
             </CardContent>
           </Card>
         </div>
@@ -210,3 +258,4 @@ export default function DashboardPage() {
     </AppLayout>
   )
 }
+

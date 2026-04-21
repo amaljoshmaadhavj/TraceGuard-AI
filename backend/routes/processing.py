@@ -6,12 +6,16 @@ from fastapi import APIRouter, HTTPException
 import sys
 import os
 import logging
+from pathlib import Path
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+
+# Get project root directory
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 @router.get("/status")
@@ -20,10 +24,10 @@ async def get_processing_status():
     Get current processing status
     """
     try:
-        # Check if vectordb exists
-        vectordb_exists = os.path.exists("./vectordb")
-        embeddings_exists = os.path.exists("./embeddings")
-        data_parsed_exists = os.path.exists("./data_parsed")
+        # Check if directories exist - use absolute paths
+        vectordb_exists = (PROJECT_ROOT / "vectordb").exists()
+        embeddings_exists = (PROJECT_ROOT / "embeddings").exists()
+        data_parsed_exists = (PROJECT_ROOT / "data_parsed").exists()
         
         if vectordb_exists and embeddings_exists and data_parsed_exists:
             status = "complete"

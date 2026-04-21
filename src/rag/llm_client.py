@@ -97,15 +97,15 @@ class OllamaClient:
             logger.debug(f"Generated {len(generated_text)} characters")
             return generated_text
         
-        except requests.exceptions.Timeout:
-            logger.error("Ollama request timed out")
-            return "Error: LLM request timed out. Check if Ollama is running."
-        except requests.exceptions.ConnectionError:
-            logger.error(f"Cannot connect to Ollama at {self.base_url}")
-            return f"Error: Cannot connect to Ollama service at {self.base_url}. Is it running?"
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Ollama request timed out: {e}")
+            raise TimeoutError("Ollama request timed out after 30 seconds") from e
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Cannot connect to Ollama at {self.base_url}: {e}")
+            raise ConnectionError(f"Cannot connect to Ollama service at {self.base_url}") from e
         except Exception as e:
-            logger.error(f"Error generating response: {e}")
-            return f"Error: {str(e)}"
+            logger.error(f"Unexpected error in LLM generation: {e}")
+            raise RuntimeError(f"Failed to generate summary: {str(e)}") from e
     
     def generate_stream(self,
                        prompt: str,

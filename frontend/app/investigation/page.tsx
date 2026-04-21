@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Microscope, Send, Loader, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { TimelineView } from '@/components/timeline-view'
 import Link from 'next/link'
 
 interface Message {
@@ -14,6 +15,14 @@ interface Message {
   type: 'user' | 'ai'
   content: string
   timestamp: Date
+  isTimeline?: boolean
+  timelineData?: {
+    events: any[]
+    summary: string
+    dateRange: { start: string; end: string }
+    confidence: number
+    query: string
+  }
 }
 
 interface UploadedFile {
@@ -172,14 +181,34 @@ export default function InvestigationPage() {
 
       const data = await response.json()
 
-      // Add AI response
-      const aiMessage: Message = {
-        id: `msg-${Date.now()}-ai`,
-        type: 'ai',
-        content: data.response || 'No response generated',
-        timestamp: new Date(),
+      // Check if this is a timeline response
+      if (data.is_timeline && data.events) {
+        // Add timeline message
+        const timelineMessage: Message = {
+          id: `msg-${Date.now()}-timeline`,
+          type: 'ai',
+          content: 'Timeline Analysis',
+          timestamp: new Date(),
+          isTimeline: true,
+          timelineData: {
+            events: data.events,
+            summary: data.summary || '',
+            dateRange: data.date_range || { start: '', end: '' },
+            confidence: data.confidence || 0,
+            query: data.query
+          }
+        }
+        setMessages((prev) => [...prev, timelineMessage])
+      } else {
+        // Add regular AI response
+        const aiMessage: Message = {
+          id: `msg-${Date.now()}-ai`,
+          type: 'ai',
+          content: data.response || 'No response generated',
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, aiMessage])
       }
-      setMessages((prev) => [...prev, aiMessage])
     } catch (err) {
       console.error('Query error:', err)
       const errorMessage: Message = {
@@ -277,22 +306,28 @@ export default function InvestigationPage() {
                 </div>
               ) : (
                 messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex gap-3 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                        msg.type === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-foreground'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                      <p className={`text-xs mt-1 ${msg.type === 'user' ? 'opacity-70' : 'text-muted-foreground'}`}>
-                        {msg.timestamp.toLocaleTimeString()}
-                      </p>
-                    </div>
+                  <div key={msg.id} className={`flex gap-3 ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {msg.type === 'user' ? (
+                      <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-primary text-primary-foreground">
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-xs mt-1 opacity-70">{msg.timestamp.toLocaleTimeString()}</p>
+                      </div>
+                    ) : msg.isTimeline && msg.timelineData ? (
+                      <div className="w-full">
+                        <TimelineView
+                          events={msg.timelineData.events}
+                          summary={msg.timelineData.summary}
+                          dateRange={msg.timelineData.dateRange}
+                          confidence={msg.timelineData.confidence}
+                          query={msg.timelineData.query}
+                        />
+                      </div>
+                    ) : (
+                      <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-muted text-foreground">
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-xs mt-1 text-muted-foreground">{msg.timestamp.toLocaleTimeString()}</p>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

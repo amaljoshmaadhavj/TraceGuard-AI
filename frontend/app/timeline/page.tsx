@@ -1,177 +1,131 @@
+'use client'
+
 import { AppLayout } from '@/components/layout/app-layout'
 import { PageHeader } from '@/components/common/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Clock, Upload, CheckCircle2, AlertCircle, Zap } from 'lucide-react'
+import { Clock, History, ShieldAlert, Zap } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-const timelineEvents = [
-  {
-    id: 1,
-    timestamp: '2024-01-15 14:32:45',
-    type: 'upload',
-    title: 'Evidence Uploaded',
-    description: 'portrait_analysis.jpg uploaded for analysis',
-    icon: Upload,
-  },
-  {
-    id: 2,
-    timestamp: '2024-01-15 14:33:12',
-    type: 'analysis',
-    title: 'Analysis Started',
-    description: 'AI generation analysis initiated',
-    icon: Zap,
-  },
-  {
-    id: 3,
-    timestamp: '2024-01-15 14:35:47',
-    type: 'alert',
-    title: 'Anomalies Detected',
-    description: 'Suspicious patterns found in image metadata',
-    icon: AlertCircle,
-  },
-  {
-    id: 4,
-    timestamp: '2024-01-15 14:37:22',
-    type: 'complete',
-    title: 'Analysis Complete',
-    description: 'Confirmed AI-generated content with 94% confidence',
-    icon: CheckCircle2,
-  },
-  {
-    id: 5,
-    timestamp: '2024-01-14 09:15:33',
-    type: 'upload',
-    title: 'Document Uploaded',
-    description: 'document_scan.pdf submitted for verification',
-    icon: Upload,
-  },
-  {
-    id: 6,
-    timestamp: '2024-01-14 09:16:01',
-    type: 'analysis',
-    title: 'Digital Forensics Scan',
-    description: 'Scanning for manipulation and tampering',
-    icon: Zap,
-  },
-  {
-    id: 7,
-    timestamp: '2024-01-14 09:20:15',
-    type: 'complete',
-    title: 'Manipulation Detected',
-    description: 'Document has been edited and modified - 98% confidence',
-    icon: CheckCircle2,
-  },
-]
+interface TimelineEvent {
+  timestamp: string;
+  category: string;
+  description: string;
+  severity: string;
+}
 
-const getEventColor = (type: string) => {
-  switch (type) {
-    case 'upload':
-      return 'text-blue-500'
-    case 'analysis':
-      return 'text-purple-500'
-    case 'alert':
+const getEventIcon = (category: string) => {
+  const cat = category.toLowerCase();
+  if (cat.includes('credential')) return ShieldAlert;
+  if (cat.includes('lateral')) return Zap;
+  return History;
+}
+
+const getEventColor = (severity: string) => {
+  switch (severity.toLowerCase()) {
+    case 'critical':
       return 'text-red-500'
-    case 'complete':
+    case 'high':
+      return 'text-orange-500'
+    case 'medium':
+      return 'text-yellow-500'
+    case 'low':
       return 'text-green-500'
     default:
-      return 'text-gray-500'
+      return 'text-primary/60'
   }
 }
 
-const getEventBgColor = (type: string) => {
-  switch (type) {
-    case 'upload':
-      return 'bg-blue-100 dark:bg-blue-900/30'
-    case 'analysis':
-      return 'bg-purple-100 dark:bg-purple-900/30'
-    case 'alert':
-      return 'bg-red-100 dark:bg-red-900/30'
-    case 'complete':
-      return 'bg-green-100 dark:bg-green-900/30'
+const getEventBgColor = (severity: string) => {
+  switch (severity.toLowerCase()) {
+    case 'critical':
+      return 'bg-red-500/10'
+    case 'high':
+      return 'bg-orange-500/10'
+    case 'medium':
+      return 'bg-yellow-500/10'
+    case 'low':
+      return 'bg-green-500/10'
     default:
-      return 'bg-gray-100 dark:bg-gray-900/30'
+      return 'bg-primary/5'
   }
 }
 
 export default function TimelinePage() {
+  const [events, setEvents] = useState<TimelineEvent[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchTimeline() {
+      try {
+        const response = await fetch('http://localhost:8001/api/stats/timeline')
+        const data = await response.json()
+        if (data && data.timeline) {
+          setEvents(data.timeline)
+        }
+      } catch (error) {
+        console.error('Failed to fetch timeline:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTimeline()
+  }, [])
+
   return (
     <AppLayout>
       <div className="px-4 lg:px-8 py-8 space-y-8">
         <PageHeader
           title="Activity Timeline"
-          description="View all investigation activities and analysis events"
+          description="Chronological view of forensic events detected in ingested evidence"
           icon={<Clock className="w-8 h-8" />}
         />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Investigation Timeline</CardTitle>
-            <CardDescription>Chronological view of all events</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              {/* Timeline line */}
-              <div className="absolute left-8 top-8 bottom-0 w-0.5 bg-border" />
+        <div className="relative space-y-0">
+          {/* Vertical line */}
+          <div className="absolute left-[27px] top-2 bottom-2 w-px bg-primary/10" />
 
-              {/* Timeline events */}
-              <div className="space-y-6">
-                {timelineEvents.map((event, index) => {
-                  const Icon = event.icon
-                  return (
-                    <div key={event.id} className="relative pl-20">
-                      {/* Timeline dot */}
-                      <div
-                        className={`absolute -left-4 top-1 w-10 h-10 rounded-full border-4 border-background flex items-center justify-center ${getEventBgColor(
-                          event.type
-                        )}`}
-                      >
-                        <Icon className={`w-5 h-5 ${getEventColor(event.type)}`} />
-                      </div>
-
-                      {/* Event card */}
-                      <div className="bg-card rounded-lg p-4 border border-border hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-sm">{event.title}</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {event.description}
-                            </p>
-                          </div>
-                          <time className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                            {event.timestamp}
-                          </time>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+          {loading ? (
+            <div className="pl-16 py-8 text-primary/40 font-mono animate-pulse">
+              SYNCING_TEMPORAL_DATA...
             </div>
-          </CardContent>
-        </Card>
+          ) : events.length === 0 ? (
+            <div className="pl-16 py-8 text-primary/40 font-mono italic">
+              No forensic events detected in the database.
+            </div>
+          ) : (
+            events.map((event, index) => {
+              const Icon = getEventIcon(event.category);
+              return (
+                <div key={index} className="relative pl-16 pb-8">
+                  {/* Connector point */}
+                  <div className={`absolute left-0 top-0 w-14 h-14 rounded-full flex items-center justify-center border border-primary/20 ${getEventBgColor(event.severity)}`}>
+                    <Icon className={`w-6 h-6 ${getEventColor(event.severity)}`} />
+                  </div>
 
-        {/* Timeline Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-sm text-muted-foreground">Total Events</div>
-              <div className="text-3xl font-bold mt-2">47</div>
-              <p className="text-xs text-muted-foreground mt-2">Last 30 days</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-sm text-muted-foreground">Uploads</div>
-              <div className="text-3xl font-bold mt-2">12</div>
-              <p className="text-xs text-muted-foreground mt-2">New evidence items</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-sm text-muted-foreground">Avg Analysis Time</div>
-              <div className="text-3xl font-bold mt-2">3.2m</div>
-              <p className="text-xs text-muted-foreground mt-2">Per file</p>
-            </CardContent>
-          </Card>
+                  <Card className="card-premium border-primary/20 bg-background/50 backdrop-blur-sm">
+                    <CardHeader className="py-3 bg-primary/5 border-b border-primary/10 flex flex-row items-center justify-between space-y-0">
+                      <div>
+                        <CardTitle className="text-xs font-black uppercase tracking-widest text-primary">
+                          {event.category.replace('_', ' ')}
+                        </CardTitle>
+                        <CardDescription className="text-[10px] font-mono opacity-60">
+                          {event.timestamp}
+                        </CardDescription>
+                      </div>
+                      <div className={`text-[10px] font-mono px-2 py-0.5 rounded border border-current ${getEventColor(event.severity)}`}>
+                        {event.severity.toUpperCase()}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="py-4">
+                      <p className="text-sm font-mono leading-relaxed text-foreground/80 lowercase">
+                        {event.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </AppLayout>

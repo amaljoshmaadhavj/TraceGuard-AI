@@ -30,7 +30,7 @@ class UploadResponse(BaseModel):
 
 class QueryRequest(BaseModel):
     """Investigation query request"""
-    query: str
+    query: str 
     top_k: int = 5
 
 
@@ -72,6 +72,35 @@ class ProcessingStatus(BaseModel):
     progress: int
     status: str
     message: str
+
+
+class TimelineEvent(BaseModel):
+    """Structured forensic event for timeline"""
+    timestamp: str
+    event_id: int
+    source_system: str
+    user: str
+    process_name: Optional[str] = None
+    process_id: Optional[int] = None
+    description: str
+    category: str
+    severity: str
+    mitre_techniques: List[str] = []
+    parent_process: Optional[str] = None
+    source_ip: Optional[str] = None
+    dest_ip: Optional[str] = None
+
+
+class TimelineResponse(BaseModel):
+    """Structured timeline response"""
+    query: str
+    is_timeline: bool
+    events: List[TimelineEvent]
+    summary: str
+    total_events: int
+    date_range: Dict[str, str]
+    confidence: float
+    response_time: float
 
 
 class SettingsModel(BaseModel):
