@@ -7,7 +7,7 @@
 - **Offline-First**: Complete analysis without cloud APIs or internet connectivity
 - **Forensic Analysis**: Parse and analyze Windows Event Logs (.evtx) and network traffic (.pcap)
 - **Intelligent Retrieval**: Vector-based document retrieval using embeddings and FAISS
-- **LLM Reasoning**: Use local Qwen2.5-3B LLM to generate investigation insights
+- **LLM Reasoning**: Use local Llama2 LLM to generate investigation insights
 - **Attack Detection**: Map findings to MITRE ATT&CK techniques for threat intelligence
 - **Modular Architecture**: Clean Python codebase, easy to extend and customize
 
@@ -22,7 +22,7 @@
 - **Embeddings**: Generate vector embeddings using `sentence-transformers` (all-MiniLM-L6-v2)
 - **Vector Database**: Store and retrieve evidence using FAISS
 - **Document Retrieval**: Fetch top-5 most relevant evidence based on queries
-- **LLM Integration**: Ollama with Qwen2.5-3B for coherent investigation analysis
+- **LLM Integration**: Ollama with Llama2 for coherent investigation analysis
 
 ### Investigation Interface
 - **Interactive CLI**: Ask multi-turn questions about forensic evidence
@@ -135,7 +135,7 @@ TraceGuard AI/
    - Python version (3.10+)
    - All dependencies installed
    - Ollama service running
-   - Qwen2.5-3B model available
+   - Llama2 model available
    - Data files present
 
 ### Initialize Ollama (one-time setup)
@@ -145,7 +145,7 @@ TraceGuard AI/
 ollama serve
 
 # In another terminal, pull the model
-ollama pull qwen2.5:3b
+ollama pull llama2
 ```
 
 Verify with:
@@ -153,40 +153,30 @@ Verify with:
 ollama list
 ```
 
-You should see `qwen2.5:3b` in the list.
+You should see `llama2` in the list.
 
 ### Run the Investigation Pipeline
 
-The system processes forensic evidence in 4 stages:
+The system processes forensic evidence using the unified initialization script:
 
-#### Stage 1: Parse Evidence
-Extracts structured events from all .evtx and .pcap files.
+#### Initialize System & Vector Database
+This command parses all evidence files, generates embeddings, builds the FAISS index, and creates the evidence catalog in one go.
+
 ```bash
-python scripts/01_parse_evidence.py
+python initialize_vectordb.py
 ```
 
-Output: `data_parsed/evidence_catalog.json` + structured logs
+**What this script does:**
+1. **Parses Evidence**: Extracts structured events from all `.evtx` files in the `data/` directory.
+2. **Builds Catalog**: Creates `data_parsed/evidence_catalog.json` with grouped events and statistics.
+3. **Generates Embeddings**: Converts events into vector embeddings using `all-MiniLM-L6-v2`.
+4. **Init Vector DB**: Indexes embeddings into a FAISS database at `vectordb/`.
 
-#### Stage 2: Build Embeddings
-Converts parsed events into documents and generates embeddings.
+### Interactive Investigation (CLI)
+Once initialized, you can launch the investigator CLI to query the system.
 ```bash
-python scripts/02_build_embeddings.py
-```
-
-Output: `embeddings/` directory with embeddings + documents cache
-
-#### Stage 3: Initialize Vector Database
-Creates FAISS index for fast retrieval.
-```bash
-python scripts/03_init_vector_db.py
-```
-
-Output: `vectordb/` directory with indexed vectors
-
-#### Stage 4: Interactive Investigation
-Launch the investigator CLI to query the system.
-```bash
-python scripts/04_run_investigation.py
+# Note: Ensure you have an investigation script or use the web UI
+# python run_investigation.py
 ```
 
 Then ask questions:
@@ -297,7 +287,8 @@ The backend provides a RESTful API (used by the web frontend):
 BACKEND_HOST=127.0.0.1
 BACKEND_PORT=8001
 OLLAMA_URL=http://localhost:11434
-LLM_MODEL=qwen2.5:3b
+LLM_MODEL=llama2
+```
 DATA_DIR=./data
 VECTORDB_DIR=./vectordb
 EMBEDDING_MODEL_PATH=./embeddings/all-MiniLM-L6-v2
