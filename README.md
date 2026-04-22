@@ -7,7 +7,7 @@
 - **Offline-First**: Complete analysis without cloud APIs or internet connectivity
 - **Forensic Analysis**: Parse and analyze Windows Event Logs (.evtx) and network traffic (.pcap)
 - **Intelligent Retrieval**: Vector-based document retrieval using embeddings and FAISS
-- **LLM Reasoning**: Use local Llama2 LLM to generate investigation insights
+- **LLM Reasoning**: Use local Phi-2 LLM to generate investigation insights
 - **Attack Detection**: Map findings to MITRE ATT&CK techniques for threat intelligence
 - **Modular Architecture**: Clean Python codebase, easy to extend and customize
 
@@ -22,7 +22,7 @@
 - **Embeddings**: Generate vector embeddings using `sentence-transformers` (all-MiniLM-L6-v2)
 - **Vector Database**: Store and retrieve evidence using FAISS
 - **Document Retrieval**: Fetch top-5 most relevant evidence based on queries
-- **LLM Integration**: Ollama with Llama2 for coherent investigation analysis
+- **LLM Integration**: Ollama with Phi-2 (phi:2.7b) for coherent investigation analysis
 
 ### Investigation Interface
 - **Interactive CLI**: Ask multi-turn questions about forensic evidence
@@ -135,7 +135,7 @@ TraceGuard AI/
    - Python version (3.10+)
    - All dependencies installed
    - Ollama service running
-   - Llama2 model available
+   - Phi-2 (phi:2.7b) model available
    - Data files present
 
 ### Initialize Ollama (one-time setup)
@@ -145,7 +145,7 @@ TraceGuard AI/
 ollama serve
 
 # In another terminal, pull the model
-ollama pull llama2
+ollama pull phi:2.7b
 ```
 
 Verify with:
@@ -153,14 +153,10 @@ Verify with:
 ollama list
 ```
 
-You should see `llama2` in the list.
+You should see `phi:2.7b` in the list.
 
-### Run the Investigation Pipeline
-
-The system processes forensic evidence using the unified initialization script:
-
-#### Initialize System & Vector Database
-This command parses all evidence files, generates embeddings, builds the FAISS index, and creates the evidence catalog in one go.
+### Initialize System & Vector Database
+This command parses all evidence files, generates **Rich Narrative Documents**, creates embeddings, and builds the FAISS index.
 
 ```bash
 python initialize_vectordb.py
@@ -168,9 +164,10 @@ python initialize_vectordb.py
 
 **What this script does:**
 1. **Parses Evidence**: Extracts structured events from all `.evtx` files in the `data/` directory.
-2. **Builds Catalog**: Creates `data_parsed/evidence_catalog.json` with grouped events and statistics.
-3. **Generates Embeddings**: Converts events into vector embeddings using `all-MiniLM-L6-v2`.
-4. **Init Vector DB**: Indexes embeddings into a FAISS database at `vectordb/`.
+2. **Rich Document Building**: Uses `DocumentBuilder` to transform raw logs into high-fidelity "AI-friendly" narratives (e.g., converting IDs into readable attack descriptions).
+3. **Builds Catalog**: Creates `data_parsed/evidence_catalog.json` used by the Dashboard for stats and the Timeline.
+4. **Generates Embeddings**: Converts rich documents into 384-dimensional vectors using `all-MiniLM-L6-v2`.
+5. **Initializes FAISS**: Saves the search index to `vectordb/` for instant retrieval during investigation.
 
 ### Interactive Investigation (CLI)
 Once initialized, you can launch the investigator CLI to query the system.
@@ -232,21 +229,27 @@ This starts:
 ### Web Application Features
 
 #### Dashboard
-- Event statistics and breakdown by category
-- Severity distribution
-- Chronological timeline of detected events
+- Real-time statistics for tracked nodes, evidence files, and MITRE techniques
+- High-level category distribution (Execution, Lateral Movement, etc.)
+- Dynamic status update system for the backend pipeline
 
 #### File Upload
-- Drag & drop or select .evtx/.pcap files
-- Automatic category detection
-- Real-time upload progress
+- Professional evidentiary upload with **Forensic Category** selection
+- Multi-file drag & drop support for `.evtx` and `.pcap`
+- Direct storage into pre-defined organizational directories
 
 #### Investigation Interface
-- Natural language query submission
-- AI-powered analysis with evidence retrieval
-- MITRE ATT&CK technique mapping
-- Confidence scoring
-- Response time tracking
+- Context-aware querying using retrieved forensic evidence
+- Integrated MITRE ATT&CK technique mapping and confidence scoring
+- Detailed source attribution for every AI-generated finding
+
+#### Timeline
+- Narrative-style event sequences built using `DocumentBuilder`
+- Detailed event descriptions with process names, user IDs, and timestamps
+
+#### Statistics
+- Deep-dive analytics on attack categories and severity levels
+- Top MITRE techniques identified across the entire evidence base
 
 #### Settings
 - View current configuration
@@ -287,7 +290,7 @@ The backend provides a RESTful API (used by the web frontend):
 BACKEND_HOST=127.0.0.1
 BACKEND_PORT=8001
 OLLAMA_URL=http://localhost:11434
-LLM_MODEL=llama2
+LLM_MODEL=phi:2.7b
 ```
 DATA_DIR=./data
 VECTORDB_DIR=./vectordb
@@ -336,7 +339,7 @@ retrieval:
   top_k: 5                     # Number of documents to retrieve
 
 llm:
-  model: qwen2.5:3b            # Local LLM model
+  model: phi:2.7b              # Local LLM model
   temperature: 0.7             # Generation temperature
   max_tokens: 1024             # Max response length
 
@@ -368,7 +371,7 @@ investigation:
 | **Embedding Model** | all-MiniLM-L6-v2 (384 dimensions) |
 | **Vector DB** | FAISS IndexFlatL2 |
 | **Retrieval Speed** | ~100ms for top-5 documents |
-| **LLM Inference** | ~2-3 seconds (Qwen2.5-3B on CPU) |
+| **LLM Inference** | ~2-3 seconds (Phi-2 2.7B on CPU) |
 | **Memory Usage** | ~2-4GB (embeddings + LLM) |
 | **Max Documents** | Tested with 5000+ vectors |
 
@@ -446,9 +449,9 @@ ollama pull qwen2.5:3b
 - Restart Ollama and frontend
 
 ### Slow response times
-- Normal for CPU-based LLM (Qwen2.5-3B takes 2-5 seconds on typical CPU)
-- For faster inference, use GPU: `ollama pull qwen2.5:3b-gpu`
-- Or switch to faster model: `ollama pull phi:2.7b`
+- Normal for CPU-based LLM (Phi-2 2.7B takes 2-5 seconds on typical CPU)
+- For faster inference, use GPU: `ollama pull phi:2.7b`
+- Or switch to faster model: `ollama pull tinyllama`
 
 ## 📖 MITRE ATT&CK Mapping
 
@@ -500,8 +503,9 @@ packets = pcap_parser.parse_pcap("data/network_logs/UCAP172.31.69.15.pcap")
 
 - **No cloud connectivity**: All processing happens locally
 - **No data transmission**: Evidence stays on your system
-- **Offline LLM**: Uses Qwen2.5-3B locally (no API calls)
-- **No telemetry**: No tracking or analytics
+- **Offline LLM**: Uses **Phi-2 (phi:2.7b)** locally via Ollama (no API calls)
+- **High Integrity**: Replaces generic "Event 0" data with **Rich Narrative Documents** for better search accuracy
+- **Privacy-First**: No telemetry, tracking, or external data transmission
 
 ## 💡 Development & Features
 

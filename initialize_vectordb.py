@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from parsers.evtx_parser import EVTXParser
 from embeddings.embedding_service import EmbeddingService
 from storage.faiss_store import FAISSStore
+from processors.document_builder import DocumentBuilder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -129,7 +130,7 @@ def initialize_vectordb():
                                 'filename': filename,
                                 'category': os.path.basename(root),
                                 'source': filepath,
-                                'content': event.get('description', event.get('brief_description', str(event))),
+                                'content': DocumentBuilder.build_event_document(event),
                                 'event_id': event.get('event_id', event.get('EventID')),
                                 'computer': event.get('computer', event.get('ComputerName', '')),
                                 'timestamp': event.get('timestamp', event.get('TimeCreated', '')),
@@ -142,7 +143,7 @@ def initialize_vectordb():
                                 'filename': filename,
                                 'category': os.path.basename(root),
                                 'source': filepath,
-                                'content': event.description,
+                                'content': DocumentBuilder.build_event_document(event.model_dump()),
                                 'event_id': event.event_id,
                                 'computer': event.computer,
                                 'timestamp': event.timestamp.isoformat() if event.timestamp else '',

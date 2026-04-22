@@ -20,46 +20,41 @@ uploaded_files = {}
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
+    category: Optional[str] = Form(None),
     analysis_type: Optional[str] = Form(None),
     notes: Optional[str] = Form(None)
 ):
     """
     Upload an EVTX or PCAP file
     Optional parameters:
+    - category: The forensic category (execution, credential_access, etc.)
     - analysis_type: Type of analysis (General Analysis, Image Analysis, etc.)
     - notes: Additional context about the file
     """
     try:
         # Validate file type
-        allowed_extensions = ['.evtx']  # PCAP parser coming soon
+        allowed_extensions = ['.evtx', '.pcap']
         file_ext = os.path.splitext(file.filename)[1].lower()
         
-        # Allow files with no extension (network capture files like UCAP172.31.69.15)
+        # Handle files with no extension that are clearly network logs
         if file_ext == '' and ('ucap' in file.filename.lower() or 'pcap' in file.filename.lower()):
-            raise HTTPException(status_code=400, detail=f"PCAP files not yet supported. Please upload .evtx files instead. Network log parser coming soon.")
+            file_ext = '.pcap'
         
         if file_ext not in allowed_extensions:
-            raise HTTPException(status_code=400, detail=f"File type '{file_ext}' not supported. Only .evtx files are currently supported.")
+            raise HTTPException(status_code=400, detail=f"File type '{file_ext}' not supported. Supported: .evtx, .pcap")
         
-        # Determine category
-        category = "unknown"
-        if file_ext == '.evtx':
-            if 'credential' in file.filename.lower() or 'ca_' in file.filename.lower():
-                category = 'credential_access'
-            elif 'exec' in file.filename.lower():
-                category = 'execution'
-            elif 'lateral' in file.filename.lower() or 'lm_' in file.filename.lower():
-                category = 'lateral_movement'
-            else:
-                category = 'execution'
-        elif file_ext == '.pcap':
-            category = 'network_logs'
+        # Use provided category or default to unknown
+        target_category = category or "execution"
+        
+        # Override category based on extension if it's a network log
+        if file_ext == '.pcap':
+            target_category = "network_logs"
         
         # Create file ID
         file_id = str(uuid.uuid4())
         
-        # Save file
-        data_dir = f"../data/{category}"
+        # Save file to the correct category folder
+        data_dir = f"../data/{target_category}"
         os.makedirs(data_dir, exist_ok=True)
         
         file_path = os.path.join(data_dir, file.filename)
@@ -72,7 +67,7 @@ async def upload_file(
         file_info = {
             'id': file_id,
             'filename': file.filename,
-            'category': category,
+            'category': target_category,
             'file_type': file_ext,
             'size': len(content),
             'upload_date': datetime.now().isoformat(),
@@ -84,16 +79,15 @@ async def upload_file(
         
         uploaded_files[file_id] = file_info
         
-        logger.info(f"File uploaded: {file.filename} (ID: {file_id}) - Analysis: {analysis_type}")
+        logger.info(f"File uploaded to {target_category}: {file.filename}")
         
         return {
             "success": True,
-            "message": f"File {file.filename} uploaded successfully",
+            "message": f"File {file.filename} uploaded successfully to {target_category}",
             "file_id": file_id,
             "filename": file.filename,
-            "category": category,
-            "analysis_type": analysis_type or "General Analysis",
-            "notes": notes or ""
+            "category": target_category,
+            "analysis_type": analysis_type or "General Analysis"
         }
     
     except Exception as e:

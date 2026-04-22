@@ -23,7 +23,7 @@ interface UploadedFile {
 export default function UploadPage() {
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [dragActive, setDragActive] = useState(false)
-  const [analysisType, setAnalysisType] = useState('general')
+  const [category, setCategory] = useState('execution')
   const [notes, setNotes] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -101,7 +101,7 @@ export default function UploadPage() {
       for (const uploadedFile of files) {
         const formData = new FormData()
         formData.append('file', uploadedFile.file)
-        formData.append('analysis_type', analysisType)
+        formData.append('category', category)
         formData.append('notes', notes)
 
         const response = await fetch('http://localhost:8001/api/files/upload', {
@@ -121,7 +121,6 @@ export default function UploadPage() {
       setUploadSuccess(true)
       setFiles([])
       setNotes('')
-      setAnalysisType('general')
       
       // Auto-clear success message after 5 seconds
       setTimeout(() => {
@@ -233,17 +232,16 @@ export default function UploadPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="analysis-type">Analysis Type</Label>
-                  <Select value={analysisType} onValueChange={setAnalysisType}>
-                    <SelectTrigger id="analysis-type">
+                  <Label htmlFor="category">Forensic Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="category">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="general">General Analysis</SelectItem>
-                      <SelectItem value="image">Image Analysis</SelectItem>
-                      <SelectItem value="video">Video Analysis</SelectItem>
-                      <SelectItem value="audio">Audio Analysis</SelectItem>
-                      <SelectItem value="deepfake">Deepfake Detection</SelectItem>
+                      <SelectItem value="execution">Execution</SelectItem>
+                      <SelectItem value="credential_access">Credential Access</SelectItem>
+                      <SelectItem value="lateral_movement">Lateral Movement</SelectItem>
+                      <SelectItem value="network_logs">Network Logs</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -289,7 +287,6 @@ export default function UploadPage() {
                   onClick={() => {
                     setFiles([])
                     setNotes('')
-                    setAnalysisType('general')
                   }}
                 >
                   Clear All

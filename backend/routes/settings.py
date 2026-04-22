@@ -18,7 +18,7 @@ async def get_settings():
     try:
         settings = {
             "ollama_endpoint": os.getenv("OLLAMA_URL", "http://localhost:11434"),
-            "llm_model": "qwen2.5:3b",
+            "llm_model": "phi:2.7b",
             "embedding_model": "all-MiniLM-L6-v2",
             "top_k": 5,
             "temperature": 0.7,
