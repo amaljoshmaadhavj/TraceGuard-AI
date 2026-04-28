@@ -17,12 +17,12 @@ class OllamaClient:
     """
     Interface to Ollama local LLM service.
     
-    Connects to Ollama instance and generates text using phi:2.7b model.
+    Connects to Ollama instance and generates text using llama3.2:1b model.
     """
     
     def __init__(self, 
                  base_url: str = "http://localhost:11434",
-                 model: str = "phi:2.7b",
+                 model: str = "llama3.2:1b",
                  timeout: int = 120):
         """
         Initialize Ollama client.
