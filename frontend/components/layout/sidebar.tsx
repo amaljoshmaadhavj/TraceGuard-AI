@@ -27,8 +27,8 @@ export function Sidebar() {
             <ShieldAlert className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-black text-xs tracking-[0.3em] uppercase text-primary">TraceGuard</h1>
-            <p className="text-[9px] font-mono font-bold text-primary/60 uppercase">Forensics_OS</p>
+            <h1 className="font-black text-sm tracking-[0.3em] uppercase text-primary font-header">TraceGuard</h1>
+            <p className="text-[10px] font-mono font-bold text-primary/60 uppercase">Forensics_OS</p>
           </div>
         </div>
       </div>
@@ -43,7 +43,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group font-mono uppercase text-[11px] tracking-tight',
+                'flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group font-mono uppercase text-[12px] tracking-tight',
                 isActive
                   ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_10px_rgba(0,255,65,0.1)]'
                   : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'

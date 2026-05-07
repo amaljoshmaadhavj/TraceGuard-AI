@@ -34,17 +34,17 @@ export default function Home() {
         {/* Hero Section */}
         <section className="mb-16">
           <div className="text-center space-y-6 mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/20 border border-primary/40 text-glow">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-sm font-bold tracking-widest uppercase text-primary">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="text-xs font-semibold tracking-wider uppercase text-primary/80">
                 Advanced Forensics Platform
               </span>
             </div>
-            <h1 className="text-5xl lg:text-7xl font-bold tracking-tighter text-balance uppercase">
+            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-balance uppercase">
               Digital Forensics Meets
               <span className="text-primary text-glow block lg:inline"> AI Intelligence</span>
             </h1>
-            <p className="text-xl text-muted-foreground/80 max-w-2xl mx-auto text-balance font-mono leading-relaxed">
+            <p className="text-lg text-muted-foreground/90 max-w-2xl mx-auto text-balance leading-relaxed">
               [SYSTEM_MESSAGE]: TraceGuard AI delivers cutting-edge forensic investigation tools powered by artificial intelligence. Detect AI-generated content, analyze digital evidence, and build unshakeable cases.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
@@ -64,21 +64,21 @@ export default function Home() {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20">
             <Card className="card-premium border-primary/30">
-              <CardContent className="p-8">
-                <div className="text-4xl font-bold text-primary text-glow uppercase">15,234</div>
-                <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">Cases Analyzed</p>
+              <CardContent className="p-10">
+                <div className="text-5xl font-black text-primary text-glow uppercase font-header">15,234</div>
+                <p className="text-sm font-black text-muted-foreground mt-2 uppercase tracking-widest">Cases Analyzed</p>
               </CardContent>
             </Card>
             <Card className="card-premium border-accent/30">
-              <CardContent className="p-8">
-                <div className="text-4xl font-bold text-accent text-glow uppercase">99.8%</div>
-                <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">Detection Accuracy</p>
+              <CardContent className="p-10">
+                <div className="text-5xl font-black text-accent text-glow uppercase font-header">99.8%</div>
+                <p className="text-sm font-black text-muted-foreground mt-2 uppercase tracking-widest">Detection Accuracy</p>
               </CardContent>
             </Card>
             <Card className="card-premium border-primary/30">
-              <CardContent className="p-8">
-                <div className="text-4xl font-bold text-primary text-glow uppercase">&lt;2s</div>
-                <p className="text-xs font-bold text-muted-foreground mt-2 uppercase tracking-widest">Avg Analysis Time</p>
+              <CardContent className="p-10">
+                <div className="text-5xl font-black text-primary text-glow uppercase font-header">&lt;2s</div>
+                <p className="text-sm font-black text-muted-foreground mt-2 uppercase tracking-widest">Avg Analysis Time</p>
               </CardContent>
             </Card>
           </div>
@@ -88,8 +88,8 @@ export default function Home() {
         <section className="mb-24 py-12">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 uppercase tracking-tighter">System Capabilities</h2>
-            <div className="h-1 w-24 bg-primary mx-auto mb-6" />
-            <p className="text-muted-foreground/70 max-w-xl mx-auto font-mono">
+            <div className="h-1.5 w-32 bg-primary mx-auto mb-6" />
+            <p className="text-lg text-muted-foreground/70 max-w-xl mx-auto">
               [DEVICES_ONLINE]: Industry-leading forensic tools designed for deep-layer investigation and law enforcement.
             </p>
           </div>
@@ -105,7 +105,7 @@ export default function Home() {
                     <CardTitle className="text-xl font-bold uppercase tracking-tight">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {feature.description}
                     </p>
                   </CardContent>
@@ -121,7 +121,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
             <CardContent className="p-16 text-center space-y-8 relative z-10">
               <h2 className="text-4xl font-bold uppercase tracking-tighter">Initialize Investigation?</h2>
-              <p className="text-muted-foreground/80 max-w-2xl mx-auto font-mono text-lg">
+              <p className="text-muted-foreground/80 max-w-2xl mx-auto text-lg">
                 SECURE_PROTOCOL: Upload your first piece of evidence and let the system analyze it. TraceGuard AI is ready for active surveillance.
               </p>
               <Link href="/upload">
