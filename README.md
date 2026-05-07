@@ -7,7 +7,7 @@
 - **Offline-First**: Complete analysis without cloud APIs or internet connectivity
 - **Forensic Analysis**: Parse and analyze Windows Event Logs (.evtx) and network traffic (.pcap)
 - **Intelligent Retrieval**: Vector-based document retrieval using embeddings and FAISS
-- **LLM Reasoning**: Use local Phi-2 LLM to generate investigation insights
+- **LLM Reasoning**: Use local Llama 3.2:1b LLM to generate investigation insights
 - **Attack Detection**: Map findings to MITRE ATT&CK techniques for threat intelligence
 - **Modular Architecture**: Clean Python codebase, easy to extend and customize
 
@@ -15,14 +15,20 @@
 
 ### Evidence Analysis
 - **Event Log Parsing**: Extract EventID, timestamp, user, process name, description from .evtx files
+- **SID Resolution**: Automatically convert Windows Security IDs to usernames for readability
+- **Event Enrichment**: Transform raw event logs into human-readable narratives with attack significance
 - **Network Traffic Analysis**: Parse .pcap files for source/destination IPs, protocols, ports
-- **Evidence Aggregation**: Organize logs by attack category (credential access, execution, lateral movement, network)
+- **Evidence Aggregation**: All evidence consolidated into `data/lateral_movement/` for unified processing
+- **MITRE ATT&CK Mapping**: Automatic technique identification across 50+ event types
 
 ### RAG Pipeline
 - **Embeddings**: Generate vector embeddings using `sentence-transformers` (all-MiniLM-L6-v2)
 - **Vector Database**: Store and retrieve evidence using FAISS
 - **Document Retrieval**: Fetch top-5 most relevant evidence based on queries
-- **LLM Integration**: Ollama with Phi-2 (phi:2.7b) for coherent investigation analysis
+- **LLM Integration**: Ollama with Llama 3.2:1b (llama3.2:1b) for coherent investigation analysis
+- **Rich Narrative Documents**: Automatic enrichment of raw logs with human-readable descriptions
+- **SID Resolution**: Converts Windows SIDs (e.g., S-1-5-18) to readable usernames (e.g., SYSTEM)
+- **Event Interpretation**: Translates 50+ Windows Event IDs into understandable attack narratives
 
 ### Investigation Interface
 - **Interactive CLI**: Ask multi-turn questions about forensic evidence
@@ -60,7 +66,7 @@ TraceGuard AI/
 │   ├── models.py             # Pydantic data models
 │   ├── requirements.txt       # Python dependencies
 │   └── routes/               # API endpoint modules
-│       ├── files.py          # File upload/management
+│       ├── files.py          # File upload/management (auto-consolidates to lateral_movement)
 │       ├── query.py          # Investigation queries
 │       ├── stats.py          # Statistics & timeline
 │       ├── processing.py     # Pipeline status
@@ -74,20 +80,24 @@ TraceGuard AI/
 │   └── .env.local            # Frontend environment config
 ├── src/                      # Core investigation modules
 │   ├── parsers/              # EVTX & PCAP parsing
-│   ├── processors/           # Evidence processing
+│   ├── processors/           # Evidence processing & aggregation
 │   ├── embeddings/           # Embedding generation
 │   ├── storage/              # FAISS vector database
-│   ├── rag/                  # RAG pipeline
+│   ├── rag/                  # RAG pipeline with enrichment
 │   ├── investigation/        # Analysis & MITRE mapping
-│   └── utils/                # Logging & utilities
+│   └── utils/                # Utilities
+│       ├── logger.py         # Logging configuration
+│       ├── sid_resolver.py   # SID-to-username resolution
+│       ├── event_enrichment.py # Event interpretation & enrichment
+│       └── helpers.py        # Helper functions
 ├── data/                     # Forensic evidence
-│   ├── credential_access/    # LSASS, KeeFarce, Mimikatz dumps
-│   ├── execution/            # Process execution events
-│   ├── lateral_movement/     # Lateral movement events
+│   ├── credential_access/    # (Legacy - auto-redirected)
+│   ├── execution/            # (Legacy - auto-redirected)
+│   ├── lateral_movement/     # **UNIFIED STORAGE** - All .evtx files stored here
 │   └── network_logs/         # PCAP network traffic
-├── data_parsed/              # Processed evidence catalog
-├── vectordb/                 # FAISS vector database
-├── embeddings/               # Generated embeddings
+├── data_parsed/              # Processed evidence catalog + enrichment metadata
+├── vectordb/                 # FAISS vector database with enriched documents
+├── embeddings/               # Generated embeddings directory
 ├── docker-compose.yml        # Docker container orchestration
 ├── Dockerfile.backend        # FastAPI container
 ├── Dockerfile.frontend       # Next.js container
@@ -135,7 +145,7 @@ TraceGuard AI/
    - Python version (3.10+)
    - All dependencies installed
    - Ollama service running
-   - Phi-2 (phi:2.7b) model available
+   - Llama 3.2:1b (llama3.2:1b) model available
    - Data files present
 
 ### Initialize Ollama (one-time setup)
@@ -145,7 +155,7 @@ TraceGuard AI/
 ollama serve
 
 # In another terminal, pull the model
-ollama pull phi:2.7b
+ollama pull llama3.2:1b
 ```
 
 Verify with:
@@ -153,21 +163,24 @@ Verify with:
 ollama list
 ```
 
-You should see `phi:2.7b` in the list.
+You should see `llama3.2:1b` in the list.
 
 ### Initialize System & Vector Database
-This command parses all evidence files, generates **Rich Narrative Documents**, creates embeddings, and builds the FAISS index.
+This command parses all evidence files, generates **Rich Narrative Documents** with enrichment, creates embeddings, and builds the FAISS index.
 
 ```bash
 python initialize_vectordb.py
 ```
 
 **What this script does:**
-1. **Parses Evidence**: Extracts structured events from all `.evtx` files in the `data/` directory.
-2. **Rich Document Building**: Uses `DocumentBuilder` to transform raw logs into high-fidelity "AI-friendly" narratives (e.g., converting IDs into readable attack descriptions).
-3. **Builds Catalog**: Creates `data_parsed/evidence_catalog.json` used by the Dashboard for stats and the Timeline.
-4. **Generates Embeddings**: Converts rich documents into 384-dimensional vectors using `all-MiniLM-L6-v2`.
-5. **Initializes FAISS**: Saves the search index to `vectordb/` for instant retrieval during investigation.
+1. **Parses Evidence**: Extracts structured events from all `.evtx` files in `data/lateral_movement/` and `data/network_logs/`.
+2. **SID Resolution**: Converts Windows Security IDs (e.g., S-1-5-18) to human-readable usernames (e.g., SYSTEM).
+3. **Event Interpretation**: Translates 50+ Windows Event IDs into rich narrative descriptions with attack significance.
+4. **Rich Document Building**: Uses `DocumentBuilder` to transform enriched logs into high-fidelity "AI-friendly" narratives (instead of raw "Event 123" descriptions).
+5. **MITRE Mapping**: Automatically identifies and tags MITRE ATT&CK techniques for each event.
+6. **Builds Catalog**: Creates `data_parsed/evidence_catalog.json` used by the Dashboard for stats and the Timeline.
+7. **Generates Embeddings**: Converts enriched documents into 384-dimensional vectors using `all-MiniLM-L6-v2`.
+8. **Initializes FAISS**: Saves the search index to `vectordb/` for instant retrieval during investigation.
 
 ### Interactive Investigation (CLI)
 Once initialized, you can launch the investigator CLI to query the system.
@@ -236,7 +249,9 @@ This starts:
 #### File Upload
 - Professional evidentiary upload with **Forensic Category** selection
 - Multi-file drag & drop support for `.evtx` and `.pcap`
-- Direct storage into pre-defined organizational directories
+- **Automatic Storage**: All `.evtx` files consolidated into `data/lateral_movement/` for unified processing
+- **Network Files**: PCAP files stored in `data/network_logs/`
+- Original category metadata preserved in indexed documents for context
 
 #### Investigation Interface
 - Context-aware querying using retrieved forensic evidence
@@ -290,7 +305,7 @@ The backend provides a RESTful API (used by the web frontend):
 BACKEND_HOST=127.0.0.1
 BACKEND_PORT=8001
 OLLAMA_URL=http://localhost:11434
-LLM_MODEL=phi:2.7b
+LLM_MODEL=llama3.2:1b
 ```
 DATA_DIR=./data
 VECTORDB_DIR=./vectordb
@@ -339,7 +354,7 @@ retrieval:
   top_k: 5                     # Number of documents to retrieve
 
 llm:
-  model: phi:2.7b              # Local LLM model
+  model: llama3.2:1b           # Local LLM model
   temperature: 0.7             # Generation temperature
   max_tokens: 1024             # Max response length
 
@@ -371,7 +386,7 @@ investigation:
 | **Embedding Model** | all-MiniLM-L6-v2 (384 dimensions) |
 | **Vector DB** | FAISS IndexFlatL2 |
 | **Retrieval Speed** | ~100ms for top-5 documents |
-| **LLM Inference** | ~2-3 seconds (Phi-2 2.7B on CPU) |
+| **LLM Inference** | ~1-2 seconds (Llama 3.2:1b on GPU) |
 | **Memory Usage** | ~2-4GB (embeddings + LLM) |
 | **Max Documents** | Tested with 5000+ vectors |
 
@@ -409,9 +424,19 @@ python app.py
 Error: File could not be saved
 ```
 **Solution**:
-- Verify `data/` directories exist
+- Verify `data/lateral_movement/` and `data/network_logs/` directories exist
 - Check file size (supports any size via chunked upload)
 - Ensure read/write permissions
+- All `.evtx` files are auto-consolidated to `data/lateral_movement/` regardless of category selection
+
+**Vector database initialization shows no documents**
+```
+ERROR: No documents found to index!
+```
+**Solution**:
+- Upload `.evtx` files through the web interface or place them in `data/lateral_movement/`
+- Verify files exist: `ls data/lateral_movement/`
+- Run `python initialize_vectordb.py` again
 
 **API calls timeout**
 ```
@@ -449,8 +474,8 @@ ollama pull qwen2.5:3b
 - Restart Ollama and frontend
 
 ### Slow response times
-- Normal for CPU-based LLM (Phi-2 2.7B takes 2-5 seconds on typical CPU)
-- For faster inference, use GPU: `ollama pull phi:2.7b`
+- Normal for small LLMs like Llama 3.2:1b (1-2 seconds on laptop GPU)
+- For faster inference, ensure GPU acceleration is enabled in Ollama: `ollama pull llama3.2:1b`
 - Or switch to faster model: `ollama pull tinyllama`
 
 ## 📖 MITRE ATT&CK Mapping
@@ -503,20 +528,28 @@ packets = pcap_parser.parse_pcap("data/network_logs/UCAP172.31.69.15.pcap")
 
 - **No cloud connectivity**: All processing happens locally
 - **No data transmission**: Evidence stays on your system
-- **Offline LLM**: Uses **Phi-2 (phi:2.7b)** locally via Ollama (no API calls)
-- **High Integrity**: Replaces generic "Event 0" data with **Rich Narrative Documents** for better search accuracy
+- **Offline LLM**: Uses **Llama 3.2:1b (llama3.2:1b)** locally via Ollama (no API calls)
+- **High Integrity Data**: 
+  - Automatic SID resolution (S-1-5-18 → SYSTEM)
+  - Rich Event interpretation (raw "Event 4663" → "Attempt to access LSASS for credential dumping")
+  - Replaces generic "Event 0" data with **Rich Narrative Documents** for 56%+ improved accuracy
+- **Consolidated Storage**: All forensic logs unified in `data/lateral_movement/` for consistent processing
 - **Privacy-First**: No telemetry, tracking, or external data transmission
 
 ## 💡 Development & Features
 
 ### Current Status
 - ✅ Evidence parsing (EVTX, PCAP) - Complete
+- ✅ SID resolution for usernames - Complete
+- ✅ Event interpretation (50+ Windows Event IDs) - Complete
+- ✅ Rich narrative document generation - Complete
 - ✅ Embedding generation and FAISS indexing - Complete
 - ✅ RAG pipeline with local LLM - Complete
 - ✅ Interactive CLI investigation - Complete
 - ✅ Web application with React frontend - Complete
 - ✅ RESTful API backend - Complete
 - ✅ Docker containerization - Complete
+- ✅ Unified file storage and consolidation - Complete
 
 ### Future Enhancements
 - Advanced correlation analysis

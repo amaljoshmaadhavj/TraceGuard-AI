@@ -122,13 +122,18 @@ def initialize_vectordb():
                     result = parser.parse_event_log(filepath)
                     events = result.events
                     
+                    # Determine category based on parent folder
+                    # Note: Files are forced to lateral_movement in upload, 
+                    # but we use parent folder name for metadata consistency.
+                    folder_category = os.path.basename(root)
+                    
                     for event in events:
                         # Handle both dict and EventLogEntry objects
                         if isinstance(event, dict):
                             all_documents.append({
                                 'id': f"{file_count}_{event_count}",
                                 'filename': filename,
-                                'category': os.path.basename(root),
+                                'category': folder_category,
                                 'source': filepath,
                                 'content': DocumentBuilder.build_event_document(event),
                                 'event_id': event.get('event_id', event.get('EventID')),
@@ -141,7 +146,7 @@ def initialize_vectordb():
                             all_documents.append({
                                 'id': f"{file_count}_{event_count}",
                                 'filename': filename,
-                                'category': os.path.basename(root),
+                                'category': folder_category,
                                 'source': filepath,
                                 'content': DocumentBuilder.build_event_document(event.model_dump()),
                                 'event_id': event.event_id,
@@ -188,6 +193,23 @@ def initialize_vectordb():
         
         for doc in all_documents:
             document_texts.append(doc['content'])
+            
+            # Build comprehensive metadata
+            event_metadata = doc.get('metadata', {})
+            if isinstance(event_metadata, dict):
+                # Already a dict
+                full_metadata = event_metadata
+            else:
+                # Handle EventLogEntry objects
+                full_metadata = {
+                    'event_id': event_metadata.event_id if hasattr(event_metadata, 'event_id') else None,
+                    'timestamp': (event_metadata.timestamp.isoformat() if hasattr(event_metadata, 'timestamp') else None),
+                    'severity': (event_metadata.severity.value if hasattr(event_metadata, 'severity') else None),
+                    'category': (event_metadata.category.value if hasattr(event_metadata, 'category') else None),
+                    'user': (event_metadata.user if hasattr(event_metadata, 'user') else None),
+                    'computer': (event_metadata.computer if hasattr(event_metadata, 'computer') else None),
+                }
+            
             metadata_list.append({
                 'id': doc['id'],
                 'filename': doc['filename'],
@@ -195,7 +217,10 @@ def initialize_vectordb():
                 'event_id': doc.get('event_id'),
                 'timestamp': doc.get('timestamp'),
                 'source': doc.get('source'),
-                'metadata': doc.get('metadata', {})
+                'computer': doc.get('computer'),
+                'user': doc.get('user'),
+                'severity': full_metadata.get('severity', 'MEDIUM'),
+                'metadata': full_metadata
             })
         
         # Generate embeddings for all documents at once

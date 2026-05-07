@@ -269,7 +269,7 @@ export default function UploadPage() {
                 {uploadSuccess && (
                   <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/50 flex gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-green-500">Files uploaded successfully! Start your investigation.</p>
+                    <p className="text-sm text-green-500">Files uploaded successfully to lateral_movement! Start your investigation.</p>
                   </div>
                 )}
 

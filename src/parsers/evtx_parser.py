@@ -18,21 +18,32 @@ except ImportError:
 
 from .models import EventLogEntry, SecurityCategory, SeverityLevel, EvidenceMetadata, ParsingResult
 
+# Import enrichment utilities
+sys_path_added = False
+try:
+    from ..utils.sid_resolver import SIDResolver
+    from ..utils.event_enrichment import WindowsEventInterpreter
+except ImportError:
+    # Fallback if imports fail
+    SIDResolver = None
+    WindowsEventInterpreter = None
+
 
 logger = logging.getLogger(__name__)
 
 
 # Event ID to Security Category mapping
+# Note: Removed duplicates. Each event ID maps to its primary category.
 EVENT_ID_MAPPING = {
     # Credential Access
-    4663: SecurityCategory.CREDENTIAL_ACCESS,  # LSASS access
+    4663: SecurityCategory.CREDENTIAL_ACCESS,  # LSASS access - credential dumping
     4656: SecurityCategory.CREDENTIAL_ACCESS,  # Handle to object requested
-    5145: SecurityCategory.LATERAL_MOVEMENT,   # Network share access
-    4648: SecurityCategory.LATERAL_MOVEMENT,   # Logon with explicit credentials
-    4720: SecurityCategory.CREDENTIAL_ACCESS,  # User account created
-    4722: SecurityCategory.CREDENTIAL_ACCESS,  # User account enabled
     
-    # Execution
+    # Persistence
+    4720: SecurityCategory.PERSISTENCE,        # User account created - potential backdoor account
+    4722: SecurityCategory.PERSISTENCE,        # User account enabled - reactivating hidden account
+    
+    # Execution (Sysmon events)
     1: SecurityCategory.EXECUTION,             # Sysmon: Process creation
     3: SecurityCategory.EXECUTION,             # Sysmon: Network connection
     11: SecurityCategory.EXECUTION,            # Sysmon: FileCreate
@@ -40,13 +51,13 @@ EVENT_ID_MAPPING = {
     # Lateral Movement
     4624: SecurityCategory.LATERAL_MOVEMENT,   # Successful logon
     4625: SecurityCategory.LATERAL_MOVEMENT,   # Failed logon
-    4720: SecurityCategory.LATERAL_MOVEMENT,   # Account creation
-    
-    # Persistence
-    4688: SecurityCategory.PERSISTENCE,        # Process creation
+    4648: SecurityCategory.LATERAL_MOVEMENT,   # Logon with explicit credentials - lateral movement
+    5145: SecurityCategory.LATERAL_MOVEMENT,   # Network share access - lateral movement via SMB
     
     # Defense Evasion
+    4688: SecurityCategory.EXECUTION,          # Process creation (with details)
     4719: SecurityCategory.DEFENSE_EVASION,    # System audit policy change
+    4720: SecurityCategory.PERSISTENCE,        # Keep it in persistence (duplicate key removed)
 }
 
 # Event ID to Severity mapping
@@ -64,6 +75,8 @@ def extract_text_from_event_xml(event_element: ET.Element) -> Dict[str, str]:
     """
     Extract text content from Event XML element.
     
+    Handles Windows Event Log XML with proper namespace support.
+    
     Args:
         event_element: ElementTree.Element representing <Event> in EVTX
         
@@ -80,50 +93,113 @@ def extract_text_from_event_xml(event_element: ET.Element) -> Dict[str, str]:
     }
     
     try:
-        # Navigate XML structure for common fields
-        system = event_element.find('.//System')
+        # Define namespace for Windows Event XML
+        ns_uri = '{http://schemas.microsoft.com/win/2004/08/events/event}'
+        
+        # Find System element (with or without namespace)
+        system = event_element.find(f'.//{ns_uri}System')
+        if system is None:
+            system = event_element.find('.//System')
+        
         if system is not None:
-            # EventID
-            event_id_elem = system.find('EventID')
-            if event_id_elem is not None:
+            # EventID - it's directly as text, not an attribute
+            event_id_elem = system.find(f'{ns_uri}EventID')
+            if event_id_elem is None:
+                event_id_elem = system.find('EventID')
+            
+            if event_id_elem is not None and event_id_elem.text:
                 data['EventID'] = event_id_elem.text
             
             # Computer name
-            computer = system.find('Computer')
-            if computer is not None:
+            computer = system.find(f'{ns_uri}Computer')
+            if computer is None:
+                computer = system.find('Computer')
+            
+            if computer is not None and computer.text:
                 data['ComputerName'] = computer.text
             
-            # Timestamp
-            time_created = system.find('TimeCreated')
-            if time_created is not None:
-                data['TimeCreated'] = time_created.get('SystemTime')
+            # Timestamp from SystemTime attribute
+            time_created = system.find(f'{ns_uri}TimeCreated')
+            if time_created is None:
+                time_created = system.find('TimeCreated')
             
-            # UserID/SID
-            security = system.find('Security')
-            if security is not None:
-                user_id = security.get('UserID')
-                if user_id:
-                    data['User'] = user_id
+            if time_created is not None:
+                sys_time = time_created.get('SystemTime')
+                if sys_time:
+                    data['TimeCreated'] = sys_time
         
-        # Event data fields
-        event_data = event_element.find('.//EventData')
+        # Event data fields - this is where the real data lives
+        event_data = event_element.find(f'.//{ns_uri}EventData')
+        if event_data is None:
+            event_data = event_element.find('.//EventData')
+        
         if event_data is not None:
-            for data_elem in event_data.findall('Data'):
+            description_parts = []
+            
+            # Extract all Data elements
+            data_elems = event_data.findall(f'{ns_uri}Data')
+            if not data_elems:
+                data_elems = event_data.findall('Data')
+            
+            for data_elem in data_elems:
                 name = data_elem.get('Name', '')
-                text = data_elem.text or ''
+                text = (data_elem.text or '').strip()
                 
-                # Look for process/image name
-                if 'Image' in name or 'ProcessName' in name:
-                    data['ProcessName'] = text
+                if not text:
+                    continue
                 
-                # Collect all data fields for description
-                if text:
-                    if 'Description' not in data or data['Description'] is None:
-                        data['Description'] = ''
-                    data['Description'] += f"{name}: {text}\n"
+                # Extract user information from various possible field names
+                if not data['User'] or data['User'] == 'Unknown':
+                    if any(x in name for x in ['UserName', 'User', 'TargetUserName', 'SubjectUserName']):
+                        data['User'] = text
+                
+                # Extract domain
+                domain = None
+                if any(x in name for x in ['DomainName', 'SubjectDomainName', 'TargetDomainName']):
+                    domain = text
+                
+                # Extract process name
+                if not data['ProcessName']:
+                    if any(x in name for x in ['ProcessName', 'Image', 'ImageName']):
+                        data['ProcessName'] = text
+                
+                # Build description from key fields
+                # Only include fields that have meaningful data
+                important_fields = [
+                    'ProcessName', 'Image', 'ProcessID', 'ParentProcessID',
+                    'TargetUserName', 'SubjectUserName', 'SubjectDomainName',
+                    'ObjectName', 'CommandLine', 'ParentImage',
+                    'SourceIp', 'DestinationIp', 'DestinationPort',
+                    'AccessList', 'PrivilegeList', 'AccessMask'
+                ]
+                
+                # Include important fields in description
+                if any(field in name for field in important_fields):
+                    # Truncate very long fields
+                    truncated = text[:200] if len(text) > 200 else text
+                    description_parts.append(f"{name}: {truncated}")
+            
+            # Create description from important fields
+            if description_parts:
+                data['Description'] = '\n'.join(description_parts)
+            else:
+                # Fallback: include all non-empty fields
+                data_elems_fb = event_data.findall(f'{ns_uri}Data')
+                if not data_elems_fb:
+                    data_elems_fb = event_data.findall('Data')
+                data['Description'] = '\n'.join([
+                    f"{d.get('Name', '')}: {(d.text or '')[:100]}"
+                    for d in data_elems_fb
+                    if (d.text or '').strip()
+                ])
+        
+        # Ensure we have some description
+        if not data['Description']:
+            data['Description'] = f"Event {data.get('EventID', 'Unknown')}"
     
     except Exception as e:
         logger.debug(f"Error extracting text from event XML: {e}")
+        data['Description'] = f"Event {data.get('EventID', 'Unknown')}"
     
     return data
 
@@ -261,14 +337,39 @@ class EVTXParser:
             category = EVENT_ID_MAPPING.get(event_id, SecurityCategory.UNKNOWN)
             severity = SEVERITY_MAPPING.get(event_id, SeverityLevel.INFO)
             
+            # Resolve SIDs to usernames if possible
+            user = data.get('User') or 'Unknown'
+            if SIDResolver:
+                user = SIDResolver.resolve(user)
+            
+            # Build enriched description
+            description = data.get('Description') or f"Event {event_id}"
+            if WindowsEventInterpreter:
+                try:
+                    interpretation = WindowsEventInterpreter.interpret_event(event_id, data)
+                    # Use rich description if available
+                    if interpretation.get('description'):
+                        description = interpretation['description']
+                    # Upgrade severity based on interpretation
+                    if interpretation.get('severity'):
+                        severity_map = {
+                            'CRITICAL': SeverityLevel.CRITICAL,
+                            'HIGH': SeverityLevel.HIGH,
+                            'MEDIUM': SeverityLevel.MEDIUM,
+                            'LOW': SeverityLevel.LOW,
+                        }
+                        severity = severity_map.get(interpretation['severity'], severity)
+                except Exception as e:
+                    logger.debug(f"Failed to enrich event {event_id}: {e}")
+            
             return EventLogEntry(
                 event_id=event_id,
                 timestamp=timestamp,
                 source=data.get('ComputerName') or 'Unknown',
-                user=data.get('User') or 'Unknown',
+                user=user,
                 computer=data.get('ComputerName') or 'Unknown',
                 process_name=data.get('ProcessName'),
-                description=data.get('Description') or f"Event {event_id}",
+                description=description,
                 category=category,
                 severity=severity,
                 raw_xml=event_xml

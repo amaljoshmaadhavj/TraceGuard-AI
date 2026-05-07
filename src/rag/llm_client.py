@@ -1,7 +1,7 @@
 """
 Local LLM client for Ollama integration.
 
-Provides interface to local Ollama service running Phi 2.7B model
+Provides interface to local Ollama service running llama3.2:1b model
 for generating investigation insights.
 """
 

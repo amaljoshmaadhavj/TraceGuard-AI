@@ -12,7 +12,7 @@ from datetime import datetime
 import logging
 import json
 
-from ..parsers import EVTXParser, EvidenceMetadata
+from parsers import EVTXParser, EvidenceMetadata
 
 logger = logging.getLogger(__name__)
 

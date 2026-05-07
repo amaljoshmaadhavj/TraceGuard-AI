@@ -64,13 +64,14 @@ class DocumentBuilder:
         timestamp = event.get('timestamp', 'Unknown')
         user = event.get('user', 'Unknown')
         computer = event.get('computer', 'Unknown')
-        process = event.get('process_name', 'Unknown')
+        process = event.get('process_name') or 'N/A'
         description = event.get('description', 'No description')
         category = event.get('category', 'unknown')
         severity = event.get('severity', 'info')
         
-        # Build narrative
-        doc = f"""[{category.upper()}] Security Event #{event_id}
+        # Use the enriched description which now includes context
+        # The description field from enrichment already has proper formatting
+        doc = f"""[{category.upper()}] Event {event_id}
 
 TIMESTAMP: {timestamp}
 SEVERITY: {severity.upper()}
@@ -84,14 +85,14 @@ EVENT_DETAILS:
 {description}
 
 INVESTIGATION_CONTEXT:
-This event falls under the '{category}' security category and indicates potential
-attack activity during the {category.replace('_', ' ')} phase of a cyber attack.
+This event is classified as '{category}' security category and represents
+potential attack activity during the {category.replace('_', ' ')} phase.
 """
         
         # Add MITRE mapping if available
         mitre_tech = DocumentBuilder._get_mitre_technique(event_id, category)
         if mitre_tech:
-            doc += f"\nMITRE_ATT&CK: {mitre_tech}"
+            doc += f"\nMITRE_ATT&CK_TECHNIQUE: {mitre_tech}"
         
         return doc
     
@@ -103,7 +104,7 @@ attack activity during the {category.replace('_', ' ')} phase of a cyber attack.
         dst_ip = packet.get('dst_ip', 'Unknown')
         src_port = packet.get('src_port', 'N/A')
         dst_port = packet.get('dst_port', 'N/A')
-        protocol = packet.get('protocol', 'Unknown')
+        protocol = packet.get('protocol', 'Unknown').upper()
         packet_size = packet.get('packet_size', 0)
         flags = packet.get('flags', 'None')
         
@@ -111,27 +112,66 @@ attack activity during the {category.replace('_', ' ')} phase of a cyber attack.
         suspicious = DocumentBuilder._is_suspicious_network(src_ip, dst_ip, dst_port, protocol)
         severity = 'HIGH' if suspicious else 'MEDIUM'
         
-        doc = f"""[NETWORK_COMMUNICATION] {protocol.upper()} Connection
+        # Build threat assessment
+        threat_indicators = []
+        
+        # Check for lateral movement ports
+        lateral_movement_ports = {
+            135: 'RPC Endpoint Mapper',
+            139: 'NetBIOS Session Service',
+            445: 'SMB (File Sharing)',
+            3389: 'RDP (Remote Desktop)',
+            5985: 'WinRM (PowerShell Remoting)',
+            5986: 'WinRM (PowerShell Remoting SSL)',
+        }
+        
+        try:
+            dst_port_int = int(dst_port) if dst_port and dst_port != 'N/A' else None
+            if dst_port_int in lateral_movement_ports:
+                threat_indicators.append(
+                    f"Destination port {dst_port_int} ({lateral_movement_ports[dst_port_int]}) "
+                    f"commonly associated with lateral movement"
+                )
+        except (ValueError, TypeError):
+            pass
+        
+        # Check for external communication (potential exfiltration)
+        is_external = False
+        try:
+            if dst_ip and not dst_ip.startswith(('10.', '172.', '192.168.', 'Unknown')):
+                threat_indicators.append(
+                    f"External destination IP {dst_ip} indicates potential data exfiltration or C&C communication"
+                )
+                is_external = True
+        except:
+            pass
+        
+        doc = f"""[NETWORK_COMMUNICATION] {protocol} Connection Event
 
 TIMESTAMP: {timestamp}
 SEVERITY: {severity}
 
-SOURCE: {src_ip}:{src_port}
+SOURCE:      {src_ip}:{src_port}
 DESTINATION: {dst_ip}:{dst_port}
 
 TRAFFIC_DETAILS:
   Protocol: {protocol}
   Packet Size: {packet_size} bytes
-  TCP Flags: {flags}
+  TCP/IP Flags: {flags}
   
-INVESTIGATION_CONTEXT:
-Network communication detected between internal and external systems.
+ANALYSIS:
+Network communication detected between systems.
 """
         
-        if suspicious:
-            doc += "\nSUSPICIOUS_INDICATORS:\n"
-            if dst_port and int(dst_port) in [135, 139, 445, 3389, 5985, 5986]:
-                doc += f"  - Destination port {dst_port} commonly associated with lateral movement (RPC/SMB/RDP/WinRM)\n"
+        if threat_indicators:
+            doc += "\nTHREAT_INDICATORS:\n"
+            for i, indicator in enumerate(threat_indicators, 1):
+                doc += f"  {i}. {indicator}\n"
+        
+        if is_external:
+            doc += "\nSUSPICIOUS_ACTIVITY:\n"
+            doc += "  - External communication detected. Verify if this is expected.\n"
+            doc += "  - Check for data exfiltration or command & control (C&C) communication.\n"
         
         return doc
     

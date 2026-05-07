@@ -35,11 +35,11 @@ export function useFiles() {
     }
   };
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File, category: string = "execution", notes: string = "") => {
     try {
       setUploading(true);
       setError(null);
-      const response = await api.files.upload(file);
+      const response = await api.files.upload(file, category, notes);
       await fetchFiles(); // Refresh file list
       return response;
     } catch (err) {

@@ -27,7 +27,7 @@ async def upload_file(
     """
     Upload an EVTX or PCAP file
     Optional parameters:
-    - category: The forensic category (execution, credential_access, etc.)
+    - category: The forensic category (execution, credential_access, lateral_movement, network_logs)
     - analysis_type: Type of analysis (General Analysis, Image Analysis, etc.)
     - notes: Additional context about the file
     """
@@ -43,18 +43,27 @@ async def upload_file(
         if file_ext not in allowed_extensions:
             raise HTTPException(status_code=400, detail=f"File type '{file_ext}' not supported. Supported: .evtx, .pcap")
         
-        # Use provided category or default to unknown
-        target_category = category or "execution"
-        
-        # Override category based on extension if it's a network log
-        if file_ext == '.pcap':
+        # Force all EVTX files to lateral_movement as requested
+        # Even if another category is provided via form
+        if file_ext == '.evtx':
+            target_category = "lateral_movement"
+            logger.info(f"Forcing EVTX file '{file.filename}' to category 'lateral_movement'")
+        elif file_ext == '.pcap':
             target_category = "network_logs"
+        else:
+            # Fallback for other files
+            valid_categories = ['execution', 'credential_access', 'lateral_movement', 'network_logs']
+            target_category = category.lower().strip() if category and category.lower().strip() in valid_categories else "lateral_movement"
+        
+        logger.info(f"Target category for '{file.filename}': {target_category}")
         
         # Create file ID
         file_id = str(uuid.uuid4())
         
-        # Save file to the correct category folder
-        data_dir = f"../data/{target_category}"
+        # Use absolute path to data directory
+        # Get the project root (parent of backend)
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        data_dir = os.path.join(os.path.dirname(backend_dir), "data", target_category)
         os.makedirs(data_dir, exist_ok=True)
         
         file_path = os.path.join(data_dir, file.filename)
@@ -103,8 +112,10 @@ async def list_files():
     try:
         files_list = []
         
-        # Get files from data directory
-        base_data_dir = "../data"
+        # Get files from data directory using absolute path
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        base_data_dir = os.path.join(os.path.dirname(backend_dir), "data")
+        
         if os.path.exists(base_data_dir):
             for category in os.listdir(base_data_dir):
                 category_path = os.path.join(base_data_dir, category)

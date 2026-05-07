@@ -130,7 +130,14 @@ class RAGPipeline:
     
     def _build_investigation_prompt(self, query: str, context: str) -> str:
         """
-        Build prompt for LLM.
+        Build an advanced prompt for LLM investigation.
+        
+        Encourages:
+        - Structured analysis with specific findings
+        - MITRE ATT&CK technique identification
+        - Clear timeline and event sequencing
+        - Severity assessment
+        - Actionable recommendations
         
         Args:
             query: Investigator question
@@ -139,7 +146,49 @@ class RAGPipeline:
         Returns:
             Formatted prompt for LLM
         """
-        prompt = f"""You are an expert cybersecurity investigator analyzing forensic evidence.
+        is_timeline_query = self._detect_timeline_query(query)
+        
+        if is_timeline_query:
+            prompt = f"""You are an expert cybersecurity forensic investigator analyzing Windows security events.
+
+INVESTIGATOR QUERY:
+{query}
+
+RELEVANT FORENSIC EVIDENCE (ordered by relevance):
+{context}
+
+Based on the forensic evidence provided, construct a detailed TIMELINE ANALYSIS that:
+
+1. **Event Sequence** - List events in chronological order with:
+   - Event ID and timestamp
+   - Source system and user involved
+   - What action occurred (process creation, logon, network connection, etc.)
+   - Any relevant parameters or context
+
+2. **Attack Phases** - Identify and describe the phases of the attack:
+   - Initial Access/Reconnaissance
+   - Persistence
+   - Privilege Escalation
+   - Lateral Movement
+   - Exfiltration/Impact
+
+3. **MITRE ATT&CK Techniques** - For each phase, identify:
+   - Technique ID (T####) and name
+   - How it was observed in the evidence
+
+4. **Affected Assets** - Document:
+   - Systems compromised
+   - User accounts involved
+   - Resources accessed or modified
+
+5. **Severity Assessment** - Rate the criticality of each event and the overall impact
+
+6. **Recommended Response** - Specific incident response actions
+
+Keep response detailed but structured for briefing to security team (300-500 words)."""
+        
+        else:
+            prompt = f"""You are an expert cybersecurity investigator analyzing forensic evidence.
 
 INVESTIGATOR QUERY:
 {query}
@@ -147,17 +196,39 @@ INVESTIGATOR QUERY:
 RELEVANT FORENSIC EVIDENCE:
 {context}
 
-Based on the forensic evidence provided above, provide a concise investigation summary that includes:
+Based on the forensic evidence provided above, provide a comprehensive investigation analysis that includes:
 
-1. **Suspicious Activity Detected** - What specific security events or patterns indicate compromise?
-2. **Affected Systems & Users** - Which systems, processes, or user accounts are involved?
-3. **Timeline** - When did these activities occur?
-4. **Attack Techniques** - List any MITRE ATT&CK techniques (T####) if evident from the evidence
-5. **Severity Assessment** - How critical is this threat?
-6. **Recommended Actions** - What immediate actions should the security team take?
+1. **Findings Summary** - What specific security events or attack indicators are present in the evidence?
+   - List each significant finding with event IDs and timestamps
+   - Describe what each event indicates about attacker activity
 
-Provide your analysis in a structured format suitable for incident response team briefing.
-Keep the response concise but comprehensive (200-400 words)."""
+2. **Affected Systems & Users** - Document:
+   - Which systems, processes, or user accounts are involved
+   - User names (not just SIDs)
+   - Severity of impact for each
+
+3. **Attack Timeline** - Chronological sequence of events:
+   - When activities occurred
+   - Order of attack progression
+   - Any time gaps or suspicious timing
+
+4. **MITRE ATT&CK Mapping** - Identify techniques employed:
+   - List technique IDs (T####) with names
+   - How each technique was observed
+   - Attack framework positioning (Reconnaissance, Initial Access, Execution, etc.)
+
+5. **Threat Assessment**:
+   - Severity: CRITICAL/HIGH/MEDIUM/LOW
+   - Confidence in findings
+   - Likelihood this represents actual compromise
+
+6. **Recommended Actions**:
+   - Immediate containment steps
+   - Investigation next steps
+   - Evidence preservation requirements
+   - Remediation actions
+
+Provide analysis suitable for incident response briefing (250-400 words)."""
         
         return prompt
     
@@ -249,80 +320,43 @@ Keep the response concise but comprehensive (200-400 words)."""
         Uses both document text and metadata for rich event information.
         
         Args:
-            evidence: List of retrieved evidence dicts with document and metadata
+            evidence: List of retrieved evidence dicts
             
         Returns:
-            Sorted list of timeline events
+            List of structured event dicts for timeline
         """
-        from datetime import datetime
-        
         events = []
         
         for item in evidence:
             doc = item.get('document', '')
             metadata = item.get('metadata', {})
+            similarity = item.get('similarity', 0.0)
             
-            # Try to extract from metadata first, fall back to document parsing
-            if metadata:
-                # Use structured metadata if available
-                raw_xml = metadata.get('raw_xml', '')
-                
-                # Extract actual EventID from XML (not metadata.event_id which is 0)
-                event_id_from_xml = self._extract_from_xml(raw_xml, 'EventID')
-                try:
-                    actual_event_id = int(event_id_from_xml) if event_id_from_xml else 0
-                except (ValueError, TypeError):
-                    logger.debug(f"Failed to parse event_id '{event_id_from_xml}', using 0")
-                    actual_event_id = 0
-                
-                # Get description from CommandLine, RuleName, or ObjectName
-                description = (
-                    self._extract_from_xml(raw_xml, 'CommandLine') or
-                    self._extract_from_xml(raw_xml, 'RuleName') or
-                    self._extract_from_xml(raw_xml, 'ObjectName') or
-                    metadata.get('description', 'Security Event')
-                )
-                
+            try:
+                # Try to extract from metadata first (structured data)
                 event = {
-                    'timestamp': self._parse_timestamp(metadata.get('timestamp', '')),
-                    'event_id': actual_event_id,
-                    'source_system': metadata.get('computer', metadata.get('source', 'N/A')),
-                    'user': metadata.get('user', self._extract_from_xml(raw_xml, 'SubjectUserName') or 'N/A'),
-                    'process_name': metadata.get('process_name', self._extract_from_xml(raw_xml, 'Image')),
-                    'process_id': metadata.get('process_id', self._extract_from_xml(raw_xml, 'ProcessId')),
-                    'description': description or 'N/A',
-                    'category': metadata.get('category', 'unknown'),
-                    'severity': metadata.get('severity', 'info'),
-                    'mitre_techniques': self._extract_mitre_from_xml(raw_xml),
-                    'parent_process': self._extract_from_xml(raw_xml, 'ParentImage'),
-                    'source_ip': self._extract_from_xml(raw_xml, 'SourceIp'),
-                    'dest_ip': self._extract_from_xml(raw_xml, 'DestinationIp')
+                    'id': metadata.get('id') or f"event_{len(events)}",
+                    'event_id': metadata.get('event_id') or self._extract_event_id(doc),
+                    'timestamp': metadata.get('timestamp') or self._extract_timestamp(doc),
+                    'category': metadata.get('category') or 'Unknown',
+                    'severity': metadata.get('metadata', {}).get('severity', 'MEDIUM'),
+                    'user': metadata.get('metadata', {}).get('user') or 'Unknown',
+                    'computer': metadata.get('metadata', {}).get('computer') or 'Unknown',
+                    'description': doc[:300] + '...' if len(doc) > 300 else doc,  # Truncate for display
+                    'relevance': f"{similarity:.0%}",
+                    'source': metadata.get('filename') or 'Unknown',
                 }
-            else:
-                # Fallback to document parsing
-                event = {
-                    'timestamp': self._extract_timestamp(doc),
-                    'event_id': self._extract_event_id(doc),
-                    'source_system': self._extract_field(doc, 'computer'),
-                    'user': self._extract_field(doc, 'user'),
-                    'process_name': self._extract_field(doc, 'process'),
-                    'process_id': None,
-                    'description': doc[:300] if len(doc) > 300 else doc,
-                    'category': self._extract_field(doc, 'category'),
-                    'severity': self._extract_field(doc, 'severity'),
-                    'mitre_techniques': self._extract_mitre_techniques(doc),
-                    'parent_process': None,
-                    'source_ip': None,
-                    'dest_ip': None
-                }
-            
-            events.append(event)
+                
+                events.append(event)
+            except Exception as e:
+                logger.debug(f"Failed to parse event from evidence: {e}")
+                continue
         
-        # Sort by timestamp
+        # Sort by timestamp if available
         try:
-            events.sort(key=lambda x: datetime.fromisoformat(x['timestamp'].replace(' ', 'T')))
-        except (ValueError, TypeError, AttributeError):
-            logger.warning("Could not sort events by timestamp")
+            events.sort(key=lambda e: e.get('timestamp', ''))
+        except Exception:
+            pass  # If sorting fails, keep original order
         
         return events
     

@@ -37,37 +37,72 @@ env/
 *~
 .DS_Store
 
-# Project-specific
+# Project-specific - Generated files (regenerate with initialize_vectordb.py)
 vectordb/
 embeddings/
 data_parsed/
 logs/
 *.log
 .cache/
-__pycache__/
 
-# Frontend
+# Forensic evidence data (sensitive - should not be in public repo)
+data/
+data_parsed/
+
+# Frontend build and dependencies
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/build/
+frontend/dist/
+frontend/.turbo/
+
+# Frontend environment files
+frontend/.env
 frontend/.env.local
 frontend/.env.*.local
+frontend/.env.production.local
 
-# Backend
+# Backend cache
 backend/__pycache__/
 backend/*.pyc
 backend/.pytest_cache/
+backend/.env
+backend/.env.local
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+.pytest/
 
-# OS
+# OS-specific files
 .DS_Store
 Thumbs.db
+desktop.ini
+*.tmp
 
-# Environment variables
+# Environment variables (never commit secrets)
 .env
 .env.local
+.env.*.local
+.env.production.local
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# Temporary files
+*.bak
+*.orig
+*.rej
+*.swp
+*~
