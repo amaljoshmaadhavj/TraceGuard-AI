@@ -23,22 +23,22 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn('overflow-hidden', className)}>
+    <Card className={cn('card-professional', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           {title}
         </CardTitle>
-        {icon && <div className="text-primary">{icon}</div>}
+        {icon && <div className="text-muted-foreground/60">{icon}</div>}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
         {change && (
           <div
             className={cn(
-              'flex items-center gap-1 text-xs font-medium mt-2',
+              'flex items-center gap-1.5 text-[11px] font-semibold mt-3 px-2 py-0.5 rounded-full w-fit',
               change.trend === 'up'
-                ? 'text-green-600 dark:text-green-400'
-                : 'text-red-600 dark:text-red-400'
+                ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30'
+                : 'text-rose-700 bg-rose-50 dark:text-rose-400 dark:bg-rose-950/30'
             )}
           >
             {change.trend === 'up' ? (
@@ -46,7 +46,7 @@ export function StatCard({
             ) : (
               <ArrowDown className="w-3 h-3" />
             )}
-            {change.value}% {change.label}
+            <span>{change.value}% {change.label}</span>
           </div>
         )}
       </CardContent>

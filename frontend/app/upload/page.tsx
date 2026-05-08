@@ -5,7 +5,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { PageHeader } from '@/components/common/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Upload, CheckCircle2, AlertCircle, FileIcon } from 'lucide-react'
+import { Upload, CheckCircle2, AlertCircle, FileIcon, FileText, Info } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -81,7 +81,7 @@ export default function UploadPage() {
   }
 
   const getFileIcon = (type: string) => {
-    return <FileIcon className="w-5 h-5 text-blue-500" />
+    return <FileText className="w-5 h-5 text-primary" />
   }
 
   const handleStartAnalysis = async () => {
@@ -95,9 +95,6 @@ export default function UploadPage() {
     setUploadSuccess(false)
 
     try {
-      const uploadedFiles = []
-      
-      // Upload each file to the backend
       for (const uploadedFile of files) {
         const formData = new FormData()
         formData.append('file', uploadedFile.file)
@@ -112,17 +109,12 @@ export default function UploadPage() {
         if (!response.ok) {
           throw new Error(`Failed to upload ${uploadedFile.name}: ${response.statusText}`)
         }
-
-        const data = await response.json()
-        uploadedFiles.push(data)
       }
 
-      // Success!
       setUploadSuccess(true)
       setFiles([])
       setNotes('')
       
-      // Auto-clear success message after 5 seconds
       setTimeout(() => {
         setUploadSuccess(false)
       }, 5000)
@@ -141,37 +133,38 @@ export default function UploadPage() {
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-8 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-8">
         <PageHeader
-          title="Upload Evidence"
-          description="Upload digital evidence for AI analysis and forensic investigation"
-          icon={<Upload className="w-8 h-8" />}
+          title="Evidence Ingestion"
+          description="Upload digital artifacts for forensic analysis and pattern recognition"
+          icon={<Upload className="w-8 h-8 text-primary" />}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Upload Area */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Upload Files</CardTitle>
-              <CardDescription>Drag and drop or click to select files</CardDescription>
+          <Card className="lg:col-span-2 card-professional overflow-hidden">
+            <CardHeader className="bg-secondary/30 border-b border-border/50">
+              <CardTitle className="text-sm font-bold tracking-tight">File Ingestion</CardTitle>
+              <CardDescription className="text-xs">Drag artifacts or click to browse</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Drag and Drop Area */}
+            <CardContent className="p-8 space-y-6">
               <div
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-200 ${
                   dragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
+                    ? 'border-primary bg-primary/5 scale-[1.01]'
+                    : 'border-border bg-secondary/20 hover:border-primary/50'
                 }`}
               >
-                <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="font-semibold mb-2">Drag files here or click to browse</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Supports EVTX (Windows Event Logs) and PCAP (Network Captures)
+                <div className="w-16 h-16 rounded-full bg-background border border-border flex items-center justify-center mx-auto mb-6 shadow-sm">
+                  <Upload className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-bold mb-2">Drop forensic artifacts here</h3>
+                <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">
+                  Supports system event logs, network captures, and digital evidence files.
                 </p>
                 <input
                   ref={fileInputRef}
@@ -184,37 +177,32 @@ export default function UploadPage() {
                 />
                 <Button
                   variant="outline"
-                  className="cursor-pointer"
+                  size="lg"
+                  className="px-8 font-semibold"
                   onClick={handleSelectFilesClick}
                 >
-                  Select Files
+                  Select Artifacts
                 </Button>
               </div>
 
               {/* Uploaded Files List */}
               {files.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-sm">Uploaded Files ({files.length})</h4>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Queued Artifacts ({files.length})</h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2">
                     {files.map((file) => (
                       <div
                         key={file.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border"
+                        className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border shadow-sm group hover:border-primary/50 transition-colors"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {getFileIcon(file.type)}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">{file.name}</p>
-                            <p className="text-xs text-muted-foreground">{file.size}</p>
-                          </div>
+                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                          <FileText className="w-5 h-5" />
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {file.status === 'completed' && (
-                            <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          )}
-                          {file.status === 'uploading' && (
-                            <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                          )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold truncate leading-tight">{file.name}</p>
+                          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-1">{file.size}</p>
                         </div>
                       </div>
                     ))}
@@ -225,97 +213,98 @@ export default function UploadPage() {
           </Card>
 
           {/* Options Panel */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Analysis Options</CardTitle>
+          <div className="space-y-6">
+            <Card className="card-professional overflow-hidden">
+              <CardHeader className="bg-secondary/30 border-b border-border/50">
+                <CardTitle className="text-sm font-bold tracking-tight">Analysis Configuration</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-6 space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Forensic Category</Label>
+                  <Label htmlFor="category" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Forensic Category</Label>
                   <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger id="category">
+                    <SelectTrigger id="category" className="h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="execution">Execution</SelectItem>
+                      <SelectItem value="execution">Execution Analysis</SelectItem>
                       <SelectItem value="credential_access">Credential Access</SelectItem>
                       <SelectItem value="lateral_movement">Lateral Movement</SelectItem>
-                      <SelectItem value="network_logs">Network Logs</SelectItem>
+                      <SelectItem value="network_logs">Network Forensic Logs</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
+                  <Label htmlFor="notes" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Investigation Notes</Label>
                   <Textarea
                     id="notes"
-                    placeholder="Add any relevant context or notes about this evidence..."
+                    placeholder="Provide context for the forensic engine..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="resize-none h-24"
+                    className="resize-none h-32 text-sm"
                   />
                 </div>
 
-                {/* Error Message */}
                 {uploadError && (
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/50 flex gap-2">
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-500">{uploadError}</p>
+                  <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 dark:bg-rose-950/20 dark:border-rose-900/30 flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                    <p className="text-xs font-medium text-rose-700 dark:text-rose-400">{uploadError}</p>
                   </div>
                 )}
 
-                {/* Success Message */}
                 {uploadSuccess && (
-                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/50 flex gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-green-500">Files uploaded successfully to lateral_movement! Start your investigation.</p>
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/30 flex gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                    <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Artifacts successfully ingested. Analyzing streams now.</p>
                   </div>
                 )}
 
                 <Button
-                  className="w-full bg-primary hover:bg-primary/90"
+                  className="w-full h-12 font-bold shadow-lg shadow-primary/10"
                   disabled={files.length === 0 || uploading}
                   onClick={handleStartAnalysis}
                 >
-                  {uploading ? 'Uploading...' : 'Start Analysis'}
+                  {uploading ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" />
+                      Ingesting...
+                    </span>
+                  ) : 'Initialize Analysis'}
                 </Button>
 
                 <Button
-                  variant="outline"
-                  className="w-full"
+                  variant="ghost"
+                  className="w-full text-xs font-bold text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setFiles([])
                     setNotes('')
                   }}
                 >
-                  Clear All
+                  Clear Queue
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Quick Tips */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Tips</CardTitle>
+            <Card className="bg-secondary/20 border-border/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Info className="w-3.5 h-3.5" />
+                  Guidelines
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground">
+                <ul className="space-y-3 text-[11px] font-medium text-muted-foreground leading-relaxed">
                   <li className="flex gap-2">
                     <span className="text-primary">•</span>
-                    <span>Upload Windows Event Logs (.evtx) for system activity analysis</span>
+                    <span>Upload .evtx files for system execution artifacts.</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-primary">•</span>
-                    <span>Upload PCAP files (.pcap) for network traffic analysis</span>
+                    <span>Use .pcap for deep-packet network forensics.</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-primary">•</span>
-                    <span>Add context notes for faster investigation and analysis</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-primary">•</span>
-                    <span>Results include MITRE ATT&CK technique mapping</span>
+                    <span>Detailed notes improve pattern recognition accuracy.</span>
                   </li>
                 </ul>
               </CardContent>

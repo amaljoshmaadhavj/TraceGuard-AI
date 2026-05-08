@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, Clock, Shield } from 'lucide-react'
+import { AlertCircle, Clock, Shield, Database, Activity, Target } from 'lucide-react'
 
 interface TimelineEvent {
   timestamp: string
@@ -27,24 +27,24 @@ interface TimelineViewProps {
   query: string
 }
 
-const severityColors: Record<string, string> = {
-  critical: 'border-red-500 text-red-500',
-  high: 'border-orange-500 text-orange-500',
-  medium: 'border-yellow-500 text-yellow-500',
-  low: 'border-blue-500 text-blue-500',
-  info: 'border-green-500 text-green-500'
+const severityStyles: Record<string, { text: string; bg: string; border: string }> = {
+  critical: { text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/20', border: 'border-rose-200 dark:border-rose-900/30' },
+  high: { text: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-950/20', border: 'border-orange-200 dark:border-orange-900/30' },
+  medium: { text: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-200 dark:border-amber-900/30' },
+  low: { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/20', border: 'border-emerald-200 dark:border-emerald-900/30' },
+  info: { text: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', border: 'border-blue-200 dark:border-blue-900/30' }
 }
 
-const categoryColors: Record<string, string> = {
-  credential_access: 'bg-red-500/20 text-red-400',
-  execution: 'bg-orange-500/20 text-orange-400',
-  lateral_movement: 'bg-yellow-500/20 text-yellow-400',
-  persistence: 'bg-purple-500/20 text-purple-400',
-  discovery: 'bg-cyan-500/20 text-cyan-400',
-  collection: 'bg-pink-500/20 text-pink-400',
-  defense_evasion: 'bg-indigo-500/20 text-indigo-400',
-  exfiltration: 'bg-red-600/20 text-red-400',
-  unknown: 'bg-gray-500/20 text-gray-400'
+const categoryStyles: Record<string, string> = {
+  credential_access: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400',
+  execution: 'bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400',
+  lateral_movement: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
+  persistence: 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400',
+  discovery: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-400',
+  collection: 'bg-pink-100 text-pink-700 dark:bg-pink-950/40 dark:text-pink-400',
+  defense_evasion: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-400',
+  exfiltration: 'bg-rose-200 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300',
+  unknown: 'bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-400'
 }
 
 export function TimelineView({
@@ -82,154 +82,181 @@ export function TimelineView({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Timeline Summary Card */}
-      <Card className="card-premium border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Clock className="w-5 h-5" />
-            Timeline Analysis
-          </CardTitle>
+      <Card className="card-professional overflow-hidden">
+        <CardHeader className="bg-secondary/30 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <Clock className="w-4 h-4 text-primary" />
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Forensic Timeline Summary</CardTitle>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-mono">Date Range</p>
-              <p className="text-sm font-mono mt-1">
-                {dateRange.start ? formatDate(dateRange.start) : 'N/A'}
-              </p>
+        <CardContent className="p-8 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-2">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Date Range</p>
+              <div className="flex items-center gap-2">
+                <Database className="w-3.5 h-3.5 text-muted-foreground/60" />
+                <p className="text-sm font-bold">
+                  {dateRange.start ? formatDate(dateRange.start) : 'No Data'}
+                </p>
+              </div>
               {dateRange.end && dateRange.start !== dateRange.end && (
-                <p className="text-xs text-muted-foreground font-mono">
+                <p className="text-[10px] text-muted-foreground font-semibold px-5">
                   to {formatDate(dateRange.end)}
                 </p>
               )}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-mono">Total Events</p>
-              <p className="text-2xl font-bold text-primary mt-1">{events.length}</p>
+            <div className="space-y-2">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Artifact Count</p>
+              <div className="flex items-center gap-2 text-primary">
+                <Activity className="w-3.5 h-3.5" />
+                <p className="text-2xl font-black">{events.length}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-mono">Confidence</p>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-12 h-2 bg-primary/20 rounded overflow-hidden">
+            <div className="space-y-2">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Engine Confidence</p>
+              <div className="flex items-center gap-3 mt-1">
+                <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-primary transition-all"
+                    className="h-full bg-primary transition-all duration-1000"
                     style={{ width: `${confidence * 100}%` }}
                   />
                 </div>
-                <span className="text-sm font-mono">{(confidence * 100).toFixed(0)}%</span>
+                <span className="text-xs font-black">{(confidence * 100).toFixed(0)}%</span>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-primary/20 pt-4">
-            <p className="text-xs text-muted-foreground uppercase font-mono mb-2">Query</p>
-            <p className="text-sm font-mono text-primary/80 italic">"{query}"</p>
+          <div className="pt-6 border-t border-border/50">
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="w-3.5 h-3.5 text-muted-foreground/60" />
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Operational Query</p>
+            </div>
+            <p className="text-sm font-bold text-foreground/80 italic bg-secondary/20 p-4 rounded-xl border border-border/50">
+              "{query}"
+            </p>
           </div>
 
-          <div className="border-t border-primary/20 pt-4">
-            <p className="text-xs text-muted-foreground uppercase font-mono mb-2">Summary</p>
-            <p className="text-sm leading-relaxed text-foreground">{summary}</p>
+          <div className="pt-6 border-t border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-3">Executive Summary</p>
+            <p className="text-sm leading-relaxed font-medium text-foreground/90 bg-primary/5 p-5 rounded-xl border border-primary/10">
+              {summary}
+            </p>
           </div>
         </CardContent>
       </Card>
 
       {/* Events Timeline */}
-      <Card className="card-premium border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Event Sequence
-          </CardTitle>
+      <Card className="card-professional overflow-hidden">
+        <CardHeader className="bg-secondary/30 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <Shield className="w-4 h-4 text-primary" />
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Forensic Event Sequence</CardTitle>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {events.length === 0 ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <AlertCircle className="w-4 h-4" />
-              <p>No events to display</p>
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/40 gap-4">
+              <AlertCircle className="w-12 h-12" />
+              <p className="text-xs font-bold uppercase tracking-widest">No sequential data identified</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {events.map((event, idx) => (
-                <div
-                  key={idx}
-                  className={`flex gap-4 border-l-4 pl-4 py-3 transition-colors ${
-                    severityColors[event.severity as keyof typeof severityColors] ||
-                    'border-gray-500 text-gray-500'
-                  }`}
-                >
-                  {/* Time marker */}
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div className={`w-3 h-3 rounded-full ${severityColors[event.severity as keyof typeof severityColors]?.split(' ')[1]} -ml-3.5`} />
-                    <span className="text-xs text-muted-foreground mt-2 font-mono whitespace-nowrap">
-                      {formatTimestamp(event.timestamp)}
-                    </span>
-                  </div>
-
-                  {/* Event details */}
-                  <div className="flex-1 min-w-0">
-                    {/* Header row */}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-sm font-bold font-mono">
-                        [{event.event_id}]
+            <div className="divide-y divide-border/50">
+              {events.map((event, idx) => {
+                const styles = severityStyles[event.severity as keyof typeof severityStyles] || severityStyles.info;
+                return (
+                  <div
+                    key={idx}
+                    className="group flex flex-col md:flex-row gap-4 md:gap-8 p-8 hover:bg-secondary/20 transition-all duration-300"
+                  >
+                    {/* Time marker */}
+                    <div className="flex md:flex-col items-baseline md:items-end flex-shrink-0 md:w-28 gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">
+                        {formatTimestamp(event.timestamp)}
                       </span>
-                      <span
-                        className={`text-xs px-2 py-1 rounded font-mono ${
-                          categoryColors[
-                            event.category.toLowerCase() as keyof typeof categoryColors
-                          ] || categoryColors.unknown
-                        }`}
-                      >
-                        {event.category.replace(/_/g, ' ').toUpperCase()}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{event.source_system}</span>
+                      <div className={`hidden md:block w-3 h-3 rounded-full border-2 border-background shadow-sm ${styles.text.split(' ')[0].replace('text-', 'bg-')}`} />
                     </div>
 
-                    {/* Description */}
-                    <p className="text-sm font-mono mb-2 text-foreground break-words">
-                      {event.description}
-                    </p>
-
-                    {/* Metadata */}
-                    <div className="space-y-1 text-xs text-muted-foreground font-mono">
-                      {event.user && event.user !== 'N/A' && event.user !== 'Unknown' && (
-                        <p>User: {event.user}</p>
-                      )}
-                      {event.process_name && event.process_name !== 'N/A' && event.process_name !== 'Unknown' && (
-                        <p>
-                          Process: {event.process_name}
-                          {event.process_id !== undefined && event.process_id !== null && event.process_id !== 0 && ` (PID: ${event.process_id})`}
-                        </p>
-                      )}
-                      {event.parent_process && event.parent_process !== 'N/A' && event.parent_process !== 'Unknown' && (
-                        <p>Parent: {event.parent_process}</p>
-                      )}
-                      {(event.source_ip || event.dest_ip) && (
-                        <p>
-                          Network:
-                          {event.source_ip && event.source_ip !== 'N/A' && ` ${event.source_ip}`}
-                          {event.source_ip && event.dest_ip && ' →'}
-                          {event.dest_ip && event.dest_ip !== 'N/A' && ` ${event.dest_ip}`}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* MITRE Techniques */}
-                    {event.mitre_techniques.length > 0 && (
-                      <div className="flex gap-1 mt-3 flex-wrap">
-                        {event.mitre_techniques.map((tech, i) => (
-                          <span
-                            key={i}
-                            className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded font-mono"
-                          >
-                            {tech}
-                          </span>
-                        ))}
+                    {/* Event details */}
+                    <div className="flex-1 min-w-0 space-y-4">
+                      {/* Header row */}
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-[10px] font-black text-muted-foreground border border-border px-2 py-0.5 rounded uppercase tracking-tighter bg-background">
+                          EVT-{event.event_id}
+                        </span>
+                        <span
+                          className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest ${
+                            categoryStyles[
+                              event.category.toLowerCase() as keyof typeof categoryStyles
+                            ] || categoryStyles.unknown
+                          }`}
+                        >
+                          {event.category.replace(/_/g, ' ')}
+                        </span>
+                        <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-tighter border ${styles.border} ${styles.text}`}>
+                          {event.severity}
+                        </span>
                       </div>
-                    )}
+
+                      {/* Description */}
+                      <p className="text-sm font-bold text-foreground leading-relaxed">
+                        {event.description}
+                      </p>
+
+                      {/* Metadata Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8 pt-2">
+                        {event.user && event.user !== 'N/A' && event.user !== 'Unknown' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest w-16">Investigator</span>
+                            <span className="text-[10px] font-black text-foreground uppercase">{event.user}</span>
+                          </div>
+                        )}
+                        {event.process_name && event.process_name !== 'N/A' && event.process_name !== 'Unknown' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest w-16">Artifact</span>
+                            <span className="text-[10px] font-black text-foreground uppercase truncate">
+                              {event.process_name}
+                              {event.process_id !== undefined && event.process_id !== null && event.process_id !== 0 && ` (PID: ${event.process_id})`}
+                            </span>
+                          </div>
+                        )}
+                        {event.source_system && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest w-16">Origin</span>
+                            <span className="text-[10px] font-black text-foreground uppercase">{event.source_system}</span>
+                          </div>
+                        )}
+                        {(event.source_ip || event.dest_ip) && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest w-16">Network</span>
+                            <span className="text-[10px] font-black text-foreground uppercase">
+                              {event.source_ip || '---'} → {event.dest_ip || '---'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* MITRE Techniques */}
+                      {event.mitre_techniques.length > 0 && (
+                        <div className="flex gap-2 pt-2 flex-wrap">
+                          {event.mitre_techniques.map((tech, i) => (
+                            <div
+                              key={i}
+                              className="group/tech flex items-center gap-1.5 bg-secondary/40 hover:bg-primary/10 border border-border/50 hover:border-primary/30 px-3 py-1 rounded-lg transition-all"
+                            >
+                              <div className="w-1 h-1 rounded-full bg-primary" />
+                              <span className="text-[10px] font-bold text-muted-foreground group-hover/tech:text-primary uppercase tracking-widest">
+                                {tech}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
