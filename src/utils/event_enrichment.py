@@ -128,6 +128,90 @@ class WindowsEventInterpreter:
             'mitre_technique': 'T1059 - Command and Scripting Interpreter',
             'attack_phase': 'Execution'
         },
+        
+        # Additional Security & Directory Service Events
+        1102: {
+            'name': 'The audit log was cleared',
+            'category': 'defense_evasion',
+            'severity': 'CRITICAL',
+            'template': 'The security audit log was cleared on {computer} by {subject_user_name} (SID: {subject_user_sid}). CRITICAL: Attacker likely covering tracks and disabling forensic evidence.',
+            'mitre_technique': 'T1562.008 - Disable or Modify System Audit Logs',
+            'attack_phase': 'Defense Evasion'
+        },
+        4662: {
+            'name': 'Operation performed on object',
+            'category': 'lateral_movement',
+            'severity': 'MEDIUM',
+            'template': 'Directory service operation performed on {object_name} by {subject_user_name}. Object type: {object_type}. Operations: {operation_type}. May indicate LDAP queries or directory manipulation.',
+            'mitre_technique': 'T1087 - Account Discovery',
+            'attack_phase': 'Discovery'
+        },
+        4794: {
+            'name': 'Directory Services Restore Mode (DSRM) password was set',
+            'category': 'persistence',
+            'severity': 'CRITICAL',
+            'template': 'DSRM password was set on Domain Controller {computer}. Subject: {subject_user_name}. CRITICAL: DSRM provides offline access to Active Directory - attacker establishing persistence.',
+            'mitre_technique': 'T1098 - Account Manipulation',
+            'attack_phase': 'Persistence'
+        },
+        5136: {
+            'name': 'Directory service object modified',
+            'category': 'lateral_movement',
+            'severity': 'HIGH',
+            'template': 'Active Directory object {object_name} (class: {object_class}) was modified by {subject_user_name}. Object GUID: {object_guid}. Modification type: {operation_type}. May indicate privilege escalation or persistence.',
+            'mitre_technique': 'T1098 - Account Manipulation',
+            'attack_phase': 'Persistence'
+        },
+        
+        # Additional important events
+        1200: {
+            'name': 'Process trace started',
+            'category': 'execution',
+            'severity': 'LOW',
+            'template': 'Kernel debugging or process tracing started on {computer}. May indicate security testing or intrusion.',
+            'mitre_technique': 'T1552 - Unsecured Credentials',
+            'attack_phase': 'Defense Evasion'
+        },
+        4798: {
+            'name': 'User account added to global group',
+            'category': 'persistence',
+            'severity': 'HIGH',
+            'template': 'User account {target_user_name} was added to global group {target_group_name} on {computer} by {subject_user_name}. May indicate privilege escalation or persistence.',
+            'mitre_technique': 'T1098 - Account Manipulation',
+            'attack_phase': 'Persistence'
+        },
+        4958: {
+            'name': 'Windows Firewall has disabled inbound rule',
+            'category': 'defense_evasion',
+            'severity': 'HIGH',
+            'template': 'Windows Firewall inbound rule was disabled on {computer} by {subject_user_name}. Rule name: {rule_name}. Direction: Inbound. SUSPICIOUS: Attacker disabling security controls.',
+            'mitre_technique': 'T1562.004 - Disable or Modify System Firewall',
+            'attack_phase': 'Defense Evasion'
+        },
+        5379: {
+            'name': 'Remote access to credential manager',
+            'category': 'credential_access',
+            'severity': 'CRITICAL',
+            'template': 'Credential Manager was accessed remotely on {computer} by {subject_user_name} from {source_ip_address}. CRITICAL: Remote credential theft detected.',
+            'mitre_technique': 'T1110 - Brute Force / T1555 - Credentials in Browser',
+            'attack_phase': 'Credential Access'
+        },
+        4768: {
+            'name': 'Kerberos Authentication Ticket (TGT) Requested',
+            'category': 'lateral_movement',
+            'severity': 'MEDIUM',
+            'template': 'Kerberos TGT ticket requested for account {target_user_name} on {computer}. Client address: {client_ip_address}. May indicate credential usage or lateral movement.',
+            'mitre_technique': 'T1550 - Use of Alternate Authentication Material',
+            'attack_phase': 'Lateral Movement'
+        },
+        4769: {
+            'name': 'Kerberos Service Ticket (TGS) Requested',
+            'category': 'lateral_movement',
+            'severity': 'MEDIUM',
+            'template': 'Kerberos TGS ticket requested for service {service_name} by {account_name} on {computer}. Client address: {client_ip_address}. May indicate service enumeration or lateral movement.',
+            'mitre_technique': 'T1558 - Steal or Forge Kerberos Tickets',
+            'attack_phase': 'Lateral Movement'
+        },
     }
     
     # Logon type interpretation
@@ -174,11 +258,17 @@ class WindowsEventInterpreter:
             Dictionary with interpretation details
         """
         if event_id not in WindowsEventInterpreter.EVENT_DESCRIPTIONS:
+            # Build better fallback for unmapped events
+            computer = event_data.get('ComputerName', 'Unknown')
+            user = event_data.get('User', 'Unknown')
+            if user and user.startswith('S-1-5'):
+                user = SIDResolver.resolve(user)
+            
             return {
-                'name': f'Windows Event {event_id}',
-                'description': f'Uninterpreted Windows Security Event {event_id}',
+                'name': f'Windows Security Event {event_id}',
+                'description': f'Windows Security Event {event_id} occurred on {computer} involving user {user}. Event details: {str(event_data).get()[:100]}...',
                 'category': 'unknown',
-                'severity': 'LOW',
+                'severity': 'MEDIUM',  # Changed from LOW to MEDIUM for better visibility
                 'mitre_technique': None,
             }
         
@@ -191,8 +281,9 @@ class WindowsEventInterpreter:
         description = desc['template']
         try:
             description = description.format(**resolved_data)
-        except (KeyError, ValueError):
-            # Fallback if formatting fails
+        except (KeyError, ValueError) as e:
+            # If formatting fails, use template as-is with some context
+            logger.debug(f"Failed to format description for event {event_id}: {e}")
             description = desc['template']
         
         # Check for suspicious processes
