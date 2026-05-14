@@ -35,6 +35,33 @@
 - **MITRE ATT&CK Mapping**: Automatic mapping of findings to attack techniques
 - **Formatted Output**: Investigation summaries with evidence sources and confidence scores
 
+## 🔧 Recent Improvements (v1.1)
+
+### File Categorization
+- ✅ **Fixed**: File upload now correctly routes to selected category folders
+- ✅ **UI Enhancement**: Added warning box clarifying that all files in a batch use the same category
+- ✅ **Workflow**: Upload in separate batches for different categories
+
+### Forensic Analysis Accuracy
+- ✅ **Event Descriptions**: Added detailed forensic context for 14+ event types:
+  - Event 3: Process creation events
+  - Event 18: Sysmon pipe created/connected (lateral movement indicator)
+  - Event 169: NTLM authentication attempts
+  - Event 193: Token right adjustment (privilege escalation)
+  - Events 4663-4665: Object access and credential dumping indicators
+  - And more...
+- ✅ **Evidence Quality**: Events no longer show "[UNKNOWN]" descriptions
+- ✅ **Proper Context**: Each event includes forensic significance and attack phase information
+
+### LLM Accuracy & Anti-Hallucination
+- ✅ **Hardened Prompts**: Added explicit guardrails to prevent LLM from:
+  - Inventing time durations not supported by timestamps
+  - Claiming "exploits" without evidence
+  - Fabricating usernames or process names
+  - Making unsupported assumptions
+- ✅ **Evidence-Based Analysis**: LLM now states data limitations explicitly
+- ✅ **Fact Checking**: Only information explicitly in forensic evidence is reported
+
 ## 🏗️ Architecture
 
 ```
@@ -90,11 +117,11 @@ TraceGuard AI/
 │       ├── sid_resolver.py   # SID-to-username resolution
 │       ├── event_enrichment.py # Event interpretation & enrichment
 │       └── helpers.py        # Helper functions
-├── data/                     # Forensic evidence
-│   ├── credential_access/    # (Legacy - auto-redirected)
-│   ├── execution/            # (Legacy - auto-redirected)
-│   ├── lateral_movement/     # **UNIFIED STORAGE** - All .evtx files stored here
-│   └── network_logs/         # PCAP network traffic
+├── data/                     # Forensic evidence (organized by category)
+│   ├── credential_access/    # Credential access events (.evtx files)
+│   ├── execution/            # Execution events (.evtx files)
+│   ├── lateral_movement/     # Lateral movement events (.evtx files)
+│   └── network_logs/         # PCAP network traffic files
 ├── data_parsed/              # Processed evidence catalog + enrichment metadata
 ├── vectordb/                 # FAISS vector database with enriched documents
 ├── embeddings/               # Generated embeddings directory
@@ -173,14 +200,24 @@ python initialize_vectordb.py
 ```
 
 **What this script does:**
-1. **Parses Evidence**: Extracts structured events from all `.evtx` files in `data/lateral_movement/` and `data/network_logs/`.
+1. **Parses Evidence**: Extracts structured events from all `.evtx` files organized by category in `data/`.
 2. **SID Resolution**: Converts Windows Security IDs (e.g., S-1-5-18) to human-readable usernames (e.g., SYSTEM).
 3. **Event Interpretation**: Translates 50+ Windows Event IDs into rich narrative descriptions with attack significance.
-4. **Rich Document Building**: Uses `DocumentBuilder` to transform enriched logs into high-fidelity "AI-friendly" narratives (instead of raw "Event 123" descriptions).
+4. **Rich Document Building**: Uses `DocumentBuilder` to transform enriched logs into high-fidelity "AI-friendly" narratives with proper forensic context.
 5. **MITRE Mapping**: Automatically identifies and tags MITRE ATT&CK techniques for each event.
 6. **Builds Catalog**: Creates `data_parsed/evidence_catalog.json` used by the Dashboard for stats and the Timeline.
 7. **Generates Embeddings**: Converts enriched documents into 384-dimensional vectors using `all-MiniLM-L6-v2`.
 8. **Initializes FAISS**: Saves the search index to `vectordb/` for instant retrieval during investigation.
+
+**⚠️ Important**: After uploading new evidence or updating descriptions, always rebuild the vector database to ensure accurate analysis:
+```bash
+# Delete old database
+Remove-Item -Path "vectordb" -Force -Recurse -ErrorAction SilentlyContinue
+Remove-Item -Path "embeddings" -Force -Recurse -ErrorAction SilentlyContinue
+
+# Rebuild with new evidence
+python initialize_vectordb.py
+```
 
 ### Interactive Investigation (CLI)
 Once initialized, you can launch the investigator CLI to query the system.
@@ -249,9 +286,13 @@ This starts:
 #### File Upload
 - Professional evidentiary upload with **Forensic Category** selection
 - Multi-file drag & drop support for `.evtx` and `.pcap`
-- **Automatic Storage**: All `.evtx` files consolidated into `data/lateral_movement/` for unified processing
-- **Network Files**: PCAP files stored in `data/network_logs/`
-- Original category metadata preserved in indexed documents for context
+- **Category-Based Storage**: Files are organized by selected category:
+  - ✅ **Execution Analysis** → `data/execution/`
+  - ✅ **Credential Access** → `data/credential_access/`
+  - ✅ **Lateral Movement** → `data/lateral_movement/`
+  - ✅ **Network Forensic Logs** → `data/network_logs/`
+- **Important**: All files in a single upload batch use the same category. Upload in separate batches for different categories.
+- Warning box clarifies: "All [X] file(s) will be uploaded to [CATEGORY]"
 
 #### Investigation Interface
 - Context-aware querying using retrieved forensic evidence
