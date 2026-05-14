@@ -57,7 +57,8 @@ EVENT_ID_MAPPING = {
     # Defense Evasion
     4688: SecurityCategory.EXECUTION,          # Process creation (with details)
     4719: SecurityCategory.DEFENSE_EVASION,    # System audit policy change
-    4720: SecurityCategory.PERSISTENCE,        # Keep it in persistence (duplicate key removed)
+    1102: SecurityCategory.DEFENSE_EVASION,    # The audit log was cleared
+    104: SecurityCategory.DEFENSE_EVASION,     # The system log was cleared
 }
 
 # Event ID to Severity mapping
@@ -68,6 +69,8 @@ SEVERITY_MAPPING = {
     5145: SeverityLevel.HIGH,     # Network share
     1: SeverityLevel.MEDIUM,      # Process creation - context dependent
     4688: SeverityLevel.MEDIUM,   # Process creation
+    1102: SeverityLevel.HIGH,     # Audit log cleared - evidence destruction
+    104: SeverityLevel.HIGH,      # System log cleared - evidence destruction
 }
 
 

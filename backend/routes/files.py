@@ -43,16 +43,27 @@ async def upload_file(
         if file_ext not in allowed_extensions:
             raise HTTPException(status_code=400, detail=f"File type '{file_ext}' not supported. Supported: .evtx, .pcap")
         
-        # Force all EVTX files to lateral_movement as requested
-        # Even if another category is provided via form
+        # Validate and use the provided category
+        valid_categories = ['execution', 'credential_access', 'lateral_movement', 'network_logs']
+        
+        # Debug: Log the received category
+        logger.info(f"Received category from form: '{category}' (type: {type(category).__name__})")
+        
         if file_ext == '.evtx':
-            target_category = "lateral_movement"
-            logger.info(f"Forcing EVTX file '{file.filename}' to category 'lateral_movement'")
+            # For EVTX files, respect the user's category selection
+            if category and category.lower().strip() in valid_categories:
+                target_category = category.lower().strip()
+                logger.info(f"Category validated: '{target_category}'")
+            else:
+                # Default to lateral_movement if no valid category provided
+                target_category = "lateral_movement"
+                logger.warning(f"Category '{category}' is invalid or empty. Defaulting to 'lateral_movement'")
+            logger.info(f"EVTX file '{file.filename}' assigned to category '{target_category}'")
         elif file_ext == '.pcap':
+            # PCAP files always go to network_logs
             target_category = "network_logs"
         else:
             # Fallback for other files
-            valid_categories = ['execution', 'credential_access', 'lateral_movement', 'network_logs']
             target_category = category.lower().strip() if category and category.lower().strip() in valid_categories else "lateral_movement"
         
         logger.info(f"Target category for '{file.filename}': {target_category}")

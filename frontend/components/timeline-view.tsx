@@ -238,7 +238,7 @@ export function TimelineView({
                       </div>
 
                       {/* MITRE Techniques */}
-                      {event.mitre_techniques.length > 0 && (
+                      {event.mitre_techniques && event.mitre_techniques.length > 0 && (
                         <div className="flex gap-2 pt-2 flex-wrap">
                           {event.mitre_techniques.map((tech, i) => (
                             <div

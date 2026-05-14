@@ -60,6 +60,16 @@ class MITREMapper:
             'name': 'Brute Force',
             'description': 'Failed logon attempt'
         },
+        1102: {
+            'id': 'T1562.002',
+            'name': 'Impair Defenses: Disable Windows Event Logging',
+            'description': 'The audit log was cleared'
+        },
+        104: {
+            'id': 'T1562.002',
+            'name': 'Impair Defenses: Disable Windows Event Logging',
+            'description': 'The system log was cleared'
+        },
         4648: {
             'id': 'T1570',
             'name': 'Lateral Tool Transfer',

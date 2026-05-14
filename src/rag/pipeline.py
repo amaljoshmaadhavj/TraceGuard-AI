@@ -151,44 +151,63 @@ class RAGPipeline:
         if is_timeline_query:
             prompt = f"""You are an expert cybersecurity forensic investigator analyzing Windows security events.
 
+**CRITICAL INSTRUCTIONS - DO NOT VIOLATE:**
+- ONLY use information explicitly present in the provided forensic evidence below.
+- Do NOT speculate, assume, invent, or extrapolate beyond what is shown.
+- Do NOT claim events indicate "attacks" unless explicitly described as attacks.
+- Do NOT estimate time durations (e.g., "3-4 minutes") unless timestamps prove it.
+- Do NOT describe "exploits" or "vulnerabilities" unless explicitly mentioned.
+- Do NOT fabricate usernames, processes, or technical details not in evidence.
+- If evidence is incomplete or unclear, explicitly state this limitation.
+- Focus ONLY on what the events ACTUALLY show, based on their descriptions.
+
 INVESTIGATOR QUERY:
 {query}
 
 RELEVANT FORENSIC EVIDENCE (ordered by relevance):
 {context}
 
-Based on the forensic evidence provided, construct a detailed TIMELINE ANALYSIS that:
+Based ONLY on the forensic evidence provided, construct a detailed TIMELINE ANALYSIS that:
 
 1. **Event Sequence** - List events in chronological order with:
-   - Event ID and timestamp
-   - Source system and user involved
-   - What action occurred (process creation, logon, network connection, etc.)
-   - Any relevant parameters or context
+   - Event ID and exact timestamp
+   - Source system and user (as shown in evidence)
+   - What action occurred (based on event type description)
+   - Any relevant parameters or context visible in the evidence
 
-2. **Attack Phases** - Identify and describe the phases of the attack:
-   - Initial Access/Reconnaissance
-   - Persistence
-   - Privilege Escalation
-   - Lateral Movement
-   - Exfiltration/Impact
+2. **Attack Phases** - Identify phases ONLY if clear evidence supports them:
+   - Do not assume phases not demonstrated in the evidence
+   - Map observed events to MITRE phases with evidence references
 
-3. **MITRE ATT&CK Techniques** - For each phase, identify:
-   - Technique ID (T####) and name
-   - How it was observed in the evidence
+3. **MITRE ATT&CK Techniques** - For each event with available mapping:
+   - Technique ID (T####) and official name from evidence
+   - Explicit evidence of how technique was observed
+   - Avoid speculation about unmapped events
 
-4. **Affected Assets** - Document:
-   - Systems compromised
-   - User accounts involved
-   - Resources accessed or modified
+4. **Affected Assets** - Document ONLY what is visible:
+   - Systems mentioned in timestamps/metadata
+   - User accounts explicitly referenced
+   - Resources accessed (only if shown in evidence)
 
-5. **Severity Assessment** - Rate the criticality of each event and the overall impact
+5. **Severity Assessment** - Base on event severity indicators:
+   - Use provided severity levels
+   - Explain assessment based on event types
 
-6. **Recommended Response** - Specific incident response actions
+6. **Data Quality Note** - State if evidence is incomplete (e.g., missing executable info, unknown user)
 
-Keep response detailed but structured for briefing to security team (300-500 words)."""
+Keep response detailed but strictly factual (300-500 words)."""
         
         else:
             prompt = f"""You are an expert cybersecurity investigator analyzing forensic evidence.
+
+**CRITICAL INSTRUCTIONS - DO NOT VIOLATE:**
+- ONLY use information explicitly provided in the forensic evidence.
+- Do NOT speculate, invent, assume, or extrapolate beyond evidence.
+- Do NOT claim without proof that events indicate "attacks" or "exploitation."
+- Do NOT describe activities as "unauthorized" unless explicitly stated in evidence.
+- Do NOT fabricate timestamps, usernames, process names, or technical parameters not in evidence.
+- If data is missing or unclear, explicitly state this as a data quality limitation.
+- Be precise: report ONLY what the evidence shows, not what it might suggest.
 
 INVESTIGATOR QUERY:
 {query}
@@ -196,37 +215,39 @@ INVESTIGATOR QUERY:
 RELEVANT FORENSIC EVIDENCE:
 {context}
 
-Based on the forensic evidence provided above, provide a comprehensive investigation analysis that includes:
+Based ONLY on the forensic evidence provided above, provide a comprehensive investigation analysis that includes:
 
-1. **Findings Summary** - What specific security events or attack indicators are present in the evidence?
-   - List each significant finding with event IDs and timestamps
-   - Describe what each event indicates about attacker activity
+1. **Findings Summary** - What specific security events are present?
+   - List each event with: Event ID, timestamp, and official description
+   - State what each event indicates based on its type/classification
+   - Do NOT invent interpretations beyond the event definition
 
-2. **Affected Systems & Users** - Document:
-   - Which systems, processes, or user accounts are involved
-   - User names (not just SIDs)
-   - Severity of impact for each
+2. **Affected Systems & Users** - Document only what is shown:
+   - Systems explicitly mentioned in event metadata
+   - User names as recorded (note where users are "Unknown")
+   - Actual severity levels from the events
 
-3. **Attack Timeline** - Chronological sequence of events:
-   - When activities occurred
-   - Order of attack progression
-   - Any time gaps or suspicious timing
+3. **Attack Timeline** - Chronological sequence based on timestamps:
+   - When activities occurred (using provided timestamps)
+   - Order of events as recorded
+   - Note any gaps or unclear sequences
 
-4. **MITRE ATT&CK Mapping** - Identify techniques employed:
-   - List technique IDs (T####) with names
-   - How each technique was observed
-   - Attack framework positioning (Reconnaissance, Initial Access, Execution, etc.)
+4. **MITRE ATT&CK Mapping** - Map events using available references:
+   - Technique IDs (T####) from event classification
+   - Only for events with defined mappings
+   - Reference how technique was observed
 
 5. **Threat Assessment**:
-   - Severity: CRITICAL/HIGH/MEDIUM/LOW
-   - Confidence in findings
-   - Likelihood this represents actual compromise
+   - Severity: Based on provided event severity levels
+   - Confidence: State explicitly if evidence is incomplete
+   - Do not estimate likelihood beyond what evidence shows
 
 6. **Recommended Actions**:
-   - Immediate containment steps
-   - Investigation next steps
-   - Evidence preservation requirements
-   - Remediation actions
+   - Immediate steps based on event types
+   - Investigation priorities based on evidence quality
+   - Preservation requirements for incomplete data
+
+**Important**: If evidence is incomplete (e.g., unknown users, missing process info), explicitly state this as a limitation in your analysis.
 
 Provide analysis suitable for incident response briefing (250-400 words)."""
         

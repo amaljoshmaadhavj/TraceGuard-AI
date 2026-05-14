@@ -234,6 +234,17 @@ export default function UploadPage() {
                   </Select>
                 </div>
 
+                {files.length > 0 && (
+                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900/30 flex gap-2">
+                    <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-blue-700 dark:text-blue-400">Category applies to all files</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">All {files.length} file(s) will be uploaded to <span className="font-bold capitalize">{category.replace('_', ' ')}</span>.</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">To upload files to different categories, upload in separate batches.</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="notes" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Investigation Notes</Label>
                   <Textarea

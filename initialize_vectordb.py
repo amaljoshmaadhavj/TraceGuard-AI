@@ -122,18 +122,32 @@ def initialize_vectordb():
                     result = parser.parse_event_log(filepath)
                     events = result.events
                     
-                    # Determine category based on parent folder
-                    # Note: Files are forced to lateral_movement in upload, 
-                    # but we use parent folder name for metadata consistency.
+                    # Import EVENT_ID_MAPPING to get category from event ID
+                    from src.parsers.evtx_parser import EVENT_ID_MAPPING
                     folder_category = os.path.basename(root)
                     
                     for event in events:
+                        # Determine category: prefer EVENT_ID_MAPPING if event has event_id
+                        # Fall back to folder category only if no event_id mapping exists
+                        event_id_value = None
+                        if isinstance(event, dict):
+                            event_id_value = event.get('event_id') or event.get('EventID')
+                        else:
+                            event_id_value = event.event_id
+                        
+                        if event_id_value and int(event_id_value) in EVENT_ID_MAPPING:
+                            # Use EVENT_ID_MAPPING for more accurate categorization
+                            category = EVENT_ID_MAPPING[int(event_id_value)].value.lower()
+                        else:
+                            # Fall back to folder category
+                            category = folder_category
+                        
                         # Handle both dict and EventLogEntry objects
                         if isinstance(event, dict):
                             all_documents.append({
                                 'id': f"{file_count}_{event_count}",
                                 'filename': filename,
-                                'category': folder_category,
+                                'category': category,
                                 'source': filepath,
                                 'content': DocumentBuilder.build_event_document(event),
                                 'event_id': event.get('event_id', event.get('EventID')),
@@ -146,7 +160,7 @@ def initialize_vectordb():
                             all_documents.append({
                                 'id': f"{file_count}_{event_count}",
                                 'filename': filename,
-                                'category': folder_category,
+                                'category': category,
                                 'source': filepath,
                                 'content': DocumentBuilder.build_event_document(event.model_dump()),
                                 'event_id': event.event_id,

@@ -38,6 +38,29 @@ class DocumentBuilder:
             4648: 'T1570 - Lateral Tool Transfer',
             5145: 'T1021 - Remote Services',
         },
+        'defense_evasion': {
+            1102: 'T1562.002 - Impair Defenses: Disable Windows Event Logging',
+            104: 'T1562.002 - Impair Defenses: Disable Windows Event Logging',
+            4719: 'T1562.002 - Impair Defenses: Disable Windows Event Logging',
+        },
+    }
+    
+    # Event ID descriptions for forensic context
+    EVENT_DESCRIPTIONS = {
+        1102: 'Windows Security Log was cleared. This is a critical defense evasion indicator - the attacker or system administrator intentionally deleted audit logs to remove evidence of malicious activity.',
+        104: 'RDP Client TimeZone Bias event. Event 104 from the RDP core indicates timezone synchronization. This is typically a normal system event but may indicate RDP session establishment if combined with logon events.',
+        3: 'Process creation event. Indicates that a new process was started on the system. Review process name, parent process, and command line arguments to determine if execution was authorized.',
+        18: 'Sysmon pipe created/connected event. Indicates inter-process communication via named pipes which may indicate lateral movement or process injection attacks.',
+        169: 'NTLM authentication attempt detected. This indicates authentication activity using the NTLM protocol. Verify the source and destination to confirm if this is authorized network activity.',
+        193: 'Token right adjustment event. Indicates a process attempted to increase its privilege level or adjust security tokens, potentially indicating privilege escalation or UAC bypass.',
+        4663: 'File/object access detected. Access to sensitive files or system objects - critical indicator of credential dumping or data exfiltration activity.',
+        4664: 'Second file/object access event. Sequential object access may indicate systematic data harvesting or reconnaissance of system resources.',
+        4665: 'Third file/object access event. Pattern of multiple file accesses suggests deliberate enumeration or exfiltration of sensitive data.',
+        4719: 'System audit policy was modified. This indicates an attempt to alter Windows security policies, potentially to disable logging of specific event types.',
+        4624: 'Successful logon detected. This event indicates a user successfully authenticated to the system. Check logon type (2=Interactive, 3=Network, 10=RemoteInteractive) for context.',
+        4625: 'Failed logon attempt detected. Multiple failed logons may indicate brute force attack or credential stuffing.',
+        4656: 'Handle to an object requested. This event indicates access to sensitive system objects and may precede credential extraction.',
+        5145: 'Network share object was accessed. This indicates lateral movement activity or file exfiltration via SMB.',
     }
     
     @staticmethod
@@ -69,8 +92,20 @@ class DocumentBuilder:
         category = event.get('category', 'unknown')
         severity = event.get('severity', 'info')
         
-        # Use the enriched description which now includes context
-        # The description field from enrichment already has proper formatting
+        # Convert event_id to int for lookup if possible
+        event_id_int = None
+        try:
+            event_id_int = int(event_id)
+        except (ValueError, TypeError):
+            pass
+        
+        # Use event-specific descriptions if available
+        if event_id_int and event_id_int in DocumentBuilder.EVENT_DESCRIPTIONS:
+            description = DocumentBuilder.EVENT_DESCRIPTIONS[event_id_int]
+        elif not description or description.startswith('Event '):
+            # If description is still generic, use our custom description
+            description = f"Event ID {event_id} occurred on system {computer}"
+        
         doc = f"""[{category.upper()}] Event {event_id}
 
 TIMESTAMP: {timestamp}
@@ -86,11 +121,11 @@ EVENT_DETAILS:
 
 INVESTIGATION_CONTEXT:
 This event is classified as '{category}' security category and represents
-potential attack activity during the {category.replace('_', ' ')} phase.
+attack activity during the {category.replace('_', ' ')} phase.
 """
         
         # Add MITRE mapping if available
-        mitre_tech = DocumentBuilder._get_mitre_technique(event_id, category)
+        mitre_tech = DocumentBuilder._get_mitre_technique(event_id_int if event_id_int else 0, category)
         if mitre_tech:
             doc += f"\nMITRE_ATT&CK_TECHNIQUE: {mitre_tech}"
         
